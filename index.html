@@ -3,1304 +3,1045 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🎵 POSSIBILITYDATA — Always-On Music Sync</title>
+    <title>🎵 POSSIBILITYDATA — Continuous Music Hub</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
     <style>
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         :root {
-            --bg-primary: #0a0f0a; --bg-secondary: #0f1a0f; --bg-card: #1a2e1a;
-            --bg-input: #142a14; --accent: #1a5f1a; --accent-light: #2d862d;
+            --bg-primary: #050a05; --bg-secondary: #0a140a; --bg-card: #122012;
+            --bg-input: #0d1a0d; --accent: #1a5f1a; --accent-light: #2d862d;
             --highlight: #00c853; --text-primary: #ffffff; --text-secondary: #a8d8a8;
             --success: #00e676; --warning: #ffb74d; --border: #2a4a2a;
-            --glow: rgba(0, 200, 83, 0.35); --radius: 16px;
+            --glow: rgba(0, 200, 83, 0.35); --purple: #bb86fc; --blue: #4fc3f7;
+            --radius: 16px;
         }
+
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: var(--bg-primary); color: var(--text-primary);
-            min-height: 100vh; overflow-x: hidden;
+            min-height: 100vh; overflow-x: hidden; padding-bottom: 120px;
         }
+        
         body::before {
             content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
-            background: radial-gradient(circle at 30% 40%, rgba(0, 200, 83, 0.06) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 60%, rgba(0, 230, 118, 0.04) 0%, transparent 50%);
+            background: radial-gradient(circle at 30% 40%, rgba(0, 200, 83, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 60%, rgba(0, 230, 118, 0.05) 0%, transparent 50%);
             animation: bgFloat 20s ease-in-out infinite; z-index: -1; pointer-events: none;
         }
-        @keyframes bgFloat { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-2%, -2%) rotate(1deg); } }
+        @keyframes bgFloat { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-2%, -2%); } }
+
+        .container { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; padding: 16px; }
         
-        .container { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 16px; min-height: 100vh; display: flex; flex-direction: column; }
         header { text-align: center; padding: 20px 0; }
-        .logo { font-size: 2.5rem; margin-bottom: 5px; animation: pulse 2s infinite; display: inline-block; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .logo { font-size: 2.5rem; margin-bottom: 5px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         header h1 { 
             font-size: 1.8rem; font-weight: 800; 
-            background: linear-gradient(135deg, var(--highlight), var(--accent-light), #66bb6a); 
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; 
+            background: linear-gradient(135deg, var(--highlight), #66bb6a); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
         }
-        header p { color: var(--text-secondary); margin-top: 6px; font-size: 0.9rem; }
+        header p { color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px; }
+
+        .tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--bg-input); padding: 4px; border-radius: 12px; overflow-x: auto; }
+        .tab {
+            flex: 1; min-width: 80px; padding: 10px 8px; border-radius: 8px;
+            background: transparent; border: none; color: var(--text-secondary);
+            font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .tab.active { background: var(--bg-card); color: var(--highlight); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+
+        .section { display: none; animation: fadeIn 0.3s ease; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         .status-bar {
             display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px;
             margin-bottom: 16px; font-size: 13px; font-weight: 600; border: 1px solid var(--border);
         }
         .status-bar.disconnected { background: rgba(255, 107, 107, 0.1); border-color: rgba(255, 107, 107, 0.3); color: #ff8a8a; }
-        .status-bar.connecting { background: rgba(0, 200, 83, 0.1); border-color: rgba(0, 200, 83, 0.3); color: var(--highlight); }
         .status-bar.connected { background: rgba(0, 230, 118, 0.1); border-color: rgba(0, 230, 118, 0.3); color: var(--success); }
-        .status-bar.playing { background: rgba(0, 200, 83, 0.2); border-color: var(--highlight); color: var(--success); box-shadow: 0 0 20px var(--glow); }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-        .status-bar.connecting .status-dot { animation: pulse 1s infinite; }
-        .status-bar.playing .status-dot { animation: pulse 1.5s infinite; box-shadow: 0 0 10px var(--highlight); }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex-shrink: 0; animation: pulse 1.5s infinite; }
 
-        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
-        .main-grid { display: grid; grid-template-columns: 280px 1fr 300px; gap: 16px; }
-        @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
-        
-        .card-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; color: var(--highlight); }
-
-        .btn {
-            padding: 12px 16px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
-            transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 16px; margin-bottom: 16px;
         }
-        .btn:active { transform: scale(0.97); }
-        .btn-primary { background: linear-gradient(135deg, var(--highlight), var(--accent-light)); color: white; }
-        .btn-primary:hover:not(:disabled) { box-shadow: 0 4px 20px var(--glow); }
-        .btn-success { background: linear-gradient(135deg, var(--success), #00b368); color: #000; }
-        .btn-danger { background: linear-gradient(135deg, #ff6b6b, #e05555); color: white; }
-        .btn-outline { background: transparent; border: 2px solid var(--highlight); color: var(--highlight); }
-        .btn-outline:hover:not(:disabled) { background: rgba(0, 200, 83, 0.1); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-sm { padding: 8px 12px; font-size: 12px; width: auto; }
-        .btn-large { padding: 16px 32px; font-size: 18px; }
+        .card-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
 
-        .input-group { margin-bottom: 14px; }
-        .input-group label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; }
+        /* PLAYER */
+        .player-container {
+            background: linear-gradient(145deg, var(--bg-card), var(--bg-secondary));
+            padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 16px;
+            position: relative; overflow: hidden;
+        }
+        .now-playing { display: flex; align-items: center; gap: 15px; margin-bottom: 16px; position: relative; z-index: 1; }
+        .album-art {
+            width: 64px; height: 64px; border-radius: 12px; flex-shrink: 0;
+            background: linear-gradient(135deg, var(--accent), var(--highlight));
+            display: flex; align-items: center; justify-content: center; font-size: 28px;
+            box-shadow: 0 4px 15px rgba(0,200,83,0.3);
+        }
+        .album-art.playing { animation: spin 4s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        .track-info { flex: 1; min-width: 0; }
+        .track-title { font-weight: 700; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .track-artist { font-size: 12px; color: var(--text-secondary); margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .bt-badge { font-size: 10px; background: var(--purple); color: #000; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+
+        .progress-container { margin: 16px 0; position: relative; z-index: 1; }
+        .progress-bar-music {
+            height: 8px; background: var(--border); border-radius: 4px; cursor: pointer;
+            position: relative; overflow: visible; touch-action: none;
+        }
+        .progress-fill-music {
+            height: 100%; background: linear-gradient(90deg, var(--highlight), var(--success));
+            border-radius: 4px; width: 0%; position: relative; transition: width 0.1s linear;
+        }
+        .progress-thumb {
+            width: 16px; height: 16px; background: white; border-radius: 50%;
+            position: absolute; right: -8px; top: 50%; transform: translateY(-50%);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4); opacity: 0; transition: opacity 0.2s;
+        }
+        .progress-bar-music:active .progress-thumb { opacity: 1; }
+        .progress-times { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); margin-top: 6px; font-variant-numeric: tabular-nums; }
+
+        .player-controls {
+            display: flex; align-items: center; justify-content: center; gap: 16px; position: relative; z-index: 1;
+        }
+        .ctrl-btn {
+            width: 44px; height: 44px; border-radius: 50%; background: var(--bg-input);
+            border: 1px solid var(--border); color: var(--text-primary); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.2s;
+        }
+        .ctrl-btn:active { transform: scale(0.92); }
+        .ctrl-btn.play-pause {
+            width: 60px; height: 60px; background: linear-gradient(135deg, var(--highlight), var(--accent-light));
+            border: none; font-size: 24px; color: #000; box-shadow: 0 4px 15px var(--glow);
+        }
+
+        /* ZONES */
+        .zone-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+        @media (max-width: 600px) { .zone-container { grid-template-columns: 1fr; } }
+        .drop-zone, .paste-zone, .scan-zone {
+            border: 2px dashed var(--border); border-radius: var(--radius); padding: 20px 12px;
+            text-align: center; cursor: pointer; transition: all 0.3s; position: relative;
+            background: var(--bg-input);
+        }
+        .drop-zone:hover, .drop-zone.dragover, .paste-zone:focus-within, .scan-zone:hover {
+            border-color: var(--highlight); background: rgba(0, 200, 83, 0.08);
+        }
+        .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .zone-icon { font-size: 28px; margin-bottom: 6px; }
+        .zone-text { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+        .zone-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+        /* PLAYLIST */
+        .playlist { max-height: 350px; overflow-y: auto; }
+        .playlist::-webkit-scrollbar { width: 4px; }
+        .playlist::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        .track-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px;
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px;
+            margin-bottom: 6px; cursor: pointer; transition: all 0.2s;
+        }
+        .track-item:hover { border-color: var(--highlight); }
+        .track-item.active { background: rgba(0, 200, 83, 0.15); border-color: var(--highlight); }
+        .track-item.active .track-thumb { background: var(--highlight); color: #000; }
+        .track-thumb {
+            width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+            background: linear-gradient(135deg, var(--accent), var(--highlight));
+            display: flex; align-items: center; justify-content: center; font-size: 16px;
+        }
+        .track-meta { flex: 1; min-width: 0; }
+        .track-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .track-detail { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+        .mini-btn {
+            padding: 6px 10px; border: none; border-radius: 6px; font-size: 11px; font-weight: 600;
+            cursor: pointer; background: var(--bg-secondary); color: var(--text-secondary);
+        }
+        .mini-btn:hover { background: #ff6b6b; color: white; }
+
+        /* DEVICES */
+        .device-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px;
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 6px;
+        }
+        .device-icon {
+            width: 32px; height: 32px; border-radius: 8px; background: var(--accent);
+            display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;
+        }
+        .device-info { flex: 1; min-width: 0; }
+        .device-name { font-weight: 600; font-size: 13px; }
+        .device-type { font-size: 11px; color: var(--text-secondary); }
+        .device-status { font-size: 10px; padding: 3px 8px; border-radius: 10px; background: rgba(0, 200, 83, 0.15); color: var(--success); font-weight: 700; }
+        .device-status.active-bt { background: rgba(187, 134, 252, 0.2); color: var(--purple); }
+
+        /* BUTTONS & INPUTS */
+        .btn {
+            padding: 12px 20px; border: none; border-radius: 10px; font-size: 13px; font-weight: 700;
+            cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+        }
+        .btn-primary { background: linear-gradient(135deg, var(--highlight), var(--accent-light)); color: #000; }
+        .btn-primary:active { transform: scale(0.97); }
+        .btn-outline { background: transparent; border: 2px solid var(--highlight); color: var(--highlight); }
+        .btn-bt { background: linear-gradient(135deg, var(--purple), #9c27b0); color: white; margin-top: 8px; }
         .input-field {
-            width: 100%; padding: 12px; background: var(--bg-input); border: 2px solid var(--border);
-            border-radius: 10px; color: var(--text-primary); font-size: 14px;
+            width: 100%; padding: 12px 14px; background: var(--bg-input); border: 2px solid var(--border);
+            border-radius: 10px; color: var(--text-primary); font-size: 14px; margin-bottom: 12px; text-align: center; letter-spacing: 1px;
         }
         .input-field:focus { outline: none; border-color: var(--highlight); }
-        .input-field.identifier { text-align: center; font-family: monospace; font-size: 16px; letter-spacing: 2px; }
 
-        .drop-zone {
-            border: 2px dashed var(--border); border-radius: var(--radius); padding: 24px 16px; text-align: center;
-            cursor: pointer; transition: all 0.3s; position: relative; background: var(--bg-input);
+        /* TOAST */
+        .toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 3000; display: flex; flex-direction: column; gap: 8px; width: 90%; max-width: 400px; pointer-events: none; }
+        .toast {
+            padding: 12px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+            font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); animation: toastIn 0.3s ease, toastOut 0.3s ease 4s forwards;
+            display: flex; align-items: center; gap: 8px; pointer-events: auto;
         }
-        .drop-zone:hover, .drop-zone.dragover, .drop-zone:focus {
-            border-color: var(--highlight); background: rgba(0, 200, 83, 0.05); outline: none; box-shadow: 0 0 15px var(--glow);
-        }
-        .drop-zone .drop-icon { font-size: 36px; margin-bottom: 8px; }
-        .drop-zone .drop-text { font-size: 14px; color: var(--text-primary); margin-bottom: 4px; }
-        .drop-zone .drop-subtext { font-size: 11px; color: var(--text-secondary); }
-        .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-        .highlight { color: var(--highlight); font-weight: 700; }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(20px); } }
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.info { border-left: 3px solid var(--blue); }
+        .toast.warning { border-left: 3px solid var(--warning); }
 
-        .player-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
-        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 700; color: var(--highlight); font-size: 14px; }
-        .track-info {
-            background: var(--bg-input); padding: 10px; border-radius: 8px; margin-bottom: 12px;
-            font-size: 13px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary);
-        }
-        .track-info.active { color: var(--highlight); font-weight: 700; border: 1px solid var(--highlight); box-shadow: 0 0 10px var(--glow); animation: pulse 2s infinite; }
-        
-        .player-controls { display: flex; justify-content: center; gap: 16px; margin-bottom: 16px; }
-        .player-controls button {
-            background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary);
-            width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px;
-            transition: all 0.2s; display: flex; align-items: center; justify-content: center;
-        }
-        .player-controls button:hover { background: var(--highlight); color: white; border-color: var(--highlight); }
-        .player-controls button.play-btn { width: 56px; height: 56px; font-size: 24px; background: var(--highlight); color: white; border: none; box-shadow: 0 4px 15px var(--glow); }
-        .player-controls button.play-btn:hover { transform: scale(1.1); box-shadow: 0 6px 20px var(--glow); }
-
-        .seek-control { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 11px; color: var(--text-secondary); font-family: monospace; }
-        .seek-control input[type="range"] { flex: 1; accent-color: var(--highlight); cursor: pointer; height: 6px; }
-        
-        .pan-control { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px; color: var(--text-secondary); }
-        .pan-control input[type="range"] { flex: 1; accent-color: var(--highlight); }
-        .pan-buttons { display: flex; gap: 4px; margin-top: 6px; width: 100%; }
-        .pan-buttons button {
-            flex: 1; padding: 6px; font-size: 11px; background: var(--bg-input);
-            border: 1px solid var(--border); color: var(--text-secondary); border-radius: 6px; cursor: pointer;
-        }
-        .pan-buttons button:hover, .pan-buttons button.active { border-color: var(--highlight); color: var(--highlight); background: rgba(0,200,83,0.1); }
-        
-        .device-control { margin-bottom: 12px; font-size: 12px; }
-        .device-control select {
-            width: 100%; padding: 8px; margin-top: 4px; background: var(--bg-input);
-            border: 1px solid var(--border); color: var(--text-primary); border-radius: 8px; font-size: 12px;
-        }
-        .player-playlist { max-height: 150px; overflow-y: auto; margin-bottom: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
-        .playlist-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 8px; font-size: 12px; border-radius: 6px; cursor: pointer; color: var(--text-secondary); transition: background 0.2s;
-        }
-        .playlist-item:hover { background: var(--bg-secondary); color: var(--text-primary); }
-        .playlist-item.active { color: var(--highlight); font-weight: 700; background: rgba(0, 200, 83, 0.1); border-left: 3px solid var(--highlight); }
-
-        .file-list { margin-top: 10px; max-height: 400px; overflow-y: auto; }
-        .file-item {
-            display: flex; align-items: center; gap: 10px; padding: 10px;
-            background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px;
-        }
-        .file-icon { font-size: 22px; flex-shrink: 0; width: 28px; text-align: center; }
-        .file-info { flex: 1; min-width: 0; }
-        .file-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .file-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-        .file-actions { display: flex; gap: 6px; flex-shrink: 0; }
-        .file-btn {
-            padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
-        }
-        .file-btn.download { background: var(--highlight); color: white; }
-        .file-btn.remove { background: rgba(255, 107, 107, 0.15); color: #ff8a8a; }
-
-        /* START OVERLAY - Critical for autoplay */
-        .start-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.95); z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            backdrop-filter: blur(10px);
-        }
-        .start-overlay.hidden { display: none; }
-        .start-overlay h2 {
-            font-size: 2rem; margin-bottom: 16px; color: var(--highlight);
-            text-align: center;
-        }
-        .start-overlay p {
-            color: var(--text-secondary); margin-bottom: 32px; text-align: center; max-width: 400px; line-height: 1.6;
-        }
-        .start-overlay .pulse-ring {
-            width: 120px; height: 120px; border-radius: 50%;
-            background: var(--highlight);
-            display: flex; align-items: center; justify-content: center;
-            margin-bottom: 32px;
-            animation: pulseRing 2s infinite;
-            box-shadow: 0 0 40px var(--glow);
-        }
-        @keyframes pulseRing {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 200, 83, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 30px rgba(0, 200, 83, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 200, 83, 0); }
-        }
-        .start-overlay .pulse-ring span { font-size: 48px; }
-
-        .permission-banner {
-            background: linear-gradient(135deg, var(--warning), #ff9800);
-            color: #000; padding: 12px 20px; border-radius: 12px;
-            margin-bottom: 16px; display: none; align-items: center; gap: 12px;
-            font-weight: 600; animation: slideDown 0.3s ease;
-        }
-        .permission-banner.show { display: flex; }
-        .permission-banner button {
-            background: #000; color: white; border: none;
-            padding: 8px 16px; border-radius: 8px; cursor: pointer;
-            font-weight: 600; margin-left: auto;
-        }
-        @keyframes slideDown {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
+        /* MODAL */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); z-index: 2000;
-            display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px); padding: 20px;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000;
+            display: none; align-items: center; justify-content: center; backdrop-filter: blur(8px); padding: 20px;
         }
         .modal-overlay.show { display: flex; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .modal { background: var(--bg-card); border-radius: 20px; padding: 24px; text-align: center; max-width: 360px; width: 100%; border: 1px solid var(--border); }
-        .modal .qr-container { background: white; padding: 16px; border-radius: 16px; display: inline-block; margin: 16px 0; }
-        .modal-close { padding: 10px 24px; border: none; border-radius: 10px; background: var(--highlight); color: white; font-weight: 600; cursor: pointer; margin-top: 8px; }
-        
-        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-        @media (max-width: 600px) { .toast-container { left: 12px; right: 12px; bottom: 12px; } }
-        .toast {
-            padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
-            font-size: 13px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); animation: toastIn 0.3s ease, toastOut 0.3s ease 3.5s forwards;
-        }
-        @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(40px); } }
-        .toast.success { border-left: 4px solid var(--success); }
-        .toast.error { border-left: 4px solid #ff6b6b; }
-        .toast.warning { border-left: 4px solid var(--warning); }
+        .modal { background: var(--bg-card); border-radius: 20px; padding: 24px; max-width: 400px; width: 100%; border: 1px solid var(--border); text-align: center; }
+        .modal-close { margin-top: 16px; padding: 10px 24px; border: none; border-radius: 8px; background: var(--highlight); color: #000; font-weight: 700; cursor: pointer; }
 
-        .section { display: none; animation: fadeIn 0.4s ease; }
-        .section.active { display: block; }
-        .empty-state { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 13px; }
-        .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: rgba(0, 200, 83, 0.15); color: var(--highlight); }
-        .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        footer { text-align: center; padding: 20px 0; margin-top: auto; color: var(--text-secondary); font-size: 0.75rem; }
+        .empty-state { text-align: center; padding: 24px; color: var(--text-secondary); font-size: 13px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; background: rgba(0, 200, 83, 0.15); color: var(--highlight); margin-left: 6px; }
     </style>
 </head>
 <body>
-    <!-- START OVERLAY - Required for autoplay permissions -->
-    <div class="start-overlay" id="startOverlay">
-        <div class="pulse-ring"><span>🎵</span></div>
-        <h2>Ready to Play Music?</h2>
-        <p>Tap anywhere to enable audio playback and keep music playing continuously. This unlocks all features including auto-sync and Bluetooth routing.</p>
-        <button class="btn btn-primary btn-large" onclick="initializeApp()">
-            🎧 START MUSIC EXPERIENCE
-        </button>
-        <p style="margin-top: 24px; font-size: 12px;">Click to allow audio permissions ✓</p>
-    </div>
-
-    <!-- PERMISSION BANNER -->
-    <div class="permission-banner" id="permissionBanner">
-        <span>⚠️</span>
-        <span>Audio permissions needed for continuous playback</span>
-        <button onclick="requestAllPermissions()">Allow Now</button>
-    </div>
-
     <div class="container">
         <header>
-            <span class="logo">🎵</span>
-            <h1>PossibilityData</h1>
-            <p>Always-On Live Streaming Music Player & P2P Auto-Sync</p>
+            <div class="logo">🎵</div>
+            <h1>PossibilityData Music</h1>
+            <p>Continuous Play · Auto-BT · P2P Sync · No Duplicates</p>
         </header>
 
-        <!-- SETUP SCREEN -->
-        <div id="setupScreen" class="section active">
-            <div class="card" style="max-width: 450px; margin: 0 auto;">
-                <div class="card-title"><span>🚀</span> Create or Join Music Room</div>
-                <div class="input-group">
-                    <label>Your Device Identifier</label>
-                    <input type="text" class="input-field identifier" id="myIdentifier" placeholder="e.g. laptop-main" maxlength="30">
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <button class="btn btn-primary" id="createRoomBtn" onclick="createRoom()">✨ Create Room</button>
-                    <div>
-                        <input type="text" class="input-field identifier" id="joinIdentifier" placeholder="Room ID" style="margin-bottom: 8px;">
-                        <button class="btn btn-success" id="joinRoomBtn" onclick="joinRoom()">🔗 Join</button>
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('player')">🎵 Player</button>
+            <button class="tab" onclick="showTab('connect')">🔗 Connect</button>
+            <button class="tab" onclick="showTab('devices')">🎧 Devices</button>
+        </div>
+
+        <!-- PLAYER TAB -->
+        <div id="tab-player" class="section active">
+            <div class="player-container">
+                <div class="now-playing">
+                    <div class="album-art" id="albumArt">🎵</div>
+                    <div class="track-info">
+                        <div class="track-title" id="currentTrackTitle">Ready to Play</div>
+                        <div class="track-artist" id="currentTrackArtist">
+                            <span>Continuous Play Mode: ON</span>
+                            <span class="bt-badge" id="btBadge" style="display:none;">🎧 BT ACTIVE</span>
+                        </div>
                     </div>
                 </div>
-                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 16px; text-align: center; line-height: 1.5;">
-                     <strong>Auto-Connect:</strong> Scan the QR code with your phone camera to auto-join instantly.
-                </p>
+
+                <div class="progress-container">
+                    <div class="progress-bar-music" id="progressBar">
+                        <div class="progress-fill-music" id="progressFill">
+                            <div class="progress-thumb"></div>
+                        </div>
+                    </div>
+                    <div class="progress-times">
+                        <span id="currentTime">0:00</span>
+                        <span id="totalTime">0:00</span>
+                    </div>
+                </div>
+
+                <div class="player-controls">
+                    <button class="ctrl-btn" onclick="prevTrack()" title="Previous">⏮</button>
+                    <button class="ctrl-btn" onclick="rewind()" title="-10s">⏪</button>
+                    <button class="ctrl-btn play-pause" id="playPauseBtn" onclick="togglePlay()">▶</button>
+                    <button class="ctrl-btn" onclick="forward()" title="+10s">⏩</button>
+                    <button class="ctrl-btn" onclick="nextTrack()" title="Next">⏭</button>
+                </div>
+            </div>
+
+            <div class="zone-container">
+                <div class="drop-zone" id="dropZone">
+                    <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac" multiple>
+                    <div class="zone-icon">📂</div>
+                    <div class="zone-text">Drop MP3s Here</div>
+                    <div class="zone-sub">Auto-syncs to phone</div>
+                </div>
+                <div class="scan-zone" onclick="selectMusicFolder()">
+                    <div class="zone-icon">📁</div>
+                    <div class="zone-text">Import Folder</div>
+                    <div class="zone-sub">Save permanently to library</div>
+                </div>
+            </div>
+            <div class="paste-zone" id="pasteZone" tabindex="0" style="margin-bottom: 16px;">
+                <div class="zone-icon">📋</div>
+                <div class="zone-text">Tap here, then Ctrl+V to Paste MP3</div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span>📜</span> Library <span class="badge" id="trackCount">0</span>
+                    <button class="mini-btn" onclick="clearPlaylist()" style="margin-left: auto;">Clear</button>
+                </div>
+                <div class="playlist" id="playlist">
+                    <div class="empty-state">No tracks yet. Drop files, paste, or import a folder.</div>
+                </div>
             </div>
         </div>
 
-        <!-- MAIN APP SCREEN -->
-        <div id="roomScreen" class="section">
-            <div id="statusBar" class="status-bar disconnected">
+        <!-- CONNECT TAB -->
+        <div id="tab-connect" class="section">
+            <div class="status-bar disconnected" id="statusBar">
                 <div class="status-dot"></div>
-                <span id="statusText">Tap to Start Music</span>
+                <span id="statusText">Not connected</span>
             </div>
 
-            <div class="main-grid">
-                <!-- LEFT: P2P & DEVICES -->
-                <div>
-                    <div class="card">
-                        <div class="card-title"><span>📡</span> Room Info</div>
-                        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                            <input type="text" class="input-field" id="roomCodeDisplay" readonly style="text-align: center; font-family: monospace; font-size: 14px;">
-                            <button class="btn btn-outline btn-sm" onclick="copyRoomCode()" style="width: auto;">📋</button>
-                            <button class="btn btn-outline btn-sm" onclick="showRoomQR()" style="width: auto;">📱</button>
-                        </div>
-                        <button class="btn btn-danger btn-sm" onclick="leaveRoom()"> Leave Room</button>
-                    </div>
+            <div class="card">
+                <div class="card-title">🚀 Create Room (Laptop)</div>
+                <input type="text" class="input-field" id="myIdentifier" placeholder="e.g. my-music" maxlength="20">
+                <button class="btn btn-primary" id="createRoomBtn" onclick="createRoom()">Create Music Room</button>
+                <button class="btn btn-outline" onclick="showRoomQR()" style="margin-top: 8px;">📱 Show Huge QR for Phone</button>
+            </div>
 
-                    <div class="card">
-                        <div class="card-title"><span>🎧</span> Audio & Bluetooth</div>
-                        <button class="btn btn-primary btn-sm" onclick="requestAllPermissions()" style="margin-bottom: 8px;">
-                            🔓 Enable All Audio Permissions
-                        </button>
-                        <button class="btn btn-outline btn-sm" onclick="connectBluetooth()" style="margin-bottom: 8px;">
-                            📶 Pair Bluetooth Device
-                        </button>
-                        <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
-                            Tap "Enable All Audio Permissions" to allow continuous playback. The app will auto-route to your Bluetooth earbuds.
-                        </p>
-                    </div>
-                </div>
+            <div class="card">
+                <div class="card-title">🔗 Join Room (Phone)</div>
+                <input type="text" class="input-field" id="joinIdentifier" placeholder="e.g. my-music" maxlength="20">
+                <button class="btn btn-primary" id="joinRoomBtn" onclick="joinRoom()">Join Room</button>
+                <button class="btn btn-outline" onclick="startQRScanner()" style="margin-top: 8px;">📷 Scan QR Code</button>
+            </div>
 
-                <!-- CENTER: PLAYERS -->
-                <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <div class="card-title" style="margin: 0;"><span>🎛️</span> Audio Players</div>
-                        <button class="btn btn-outline btn-sm" onclick="addPlayer()" style="width: auto;">+ Add Player</button>
-                    </div>
-                    <div id="playersContainer"></div>
-                </div>
-
-                <!-- RIGHT: LIBRARY & INGEST -->
-                <div>
-                    <div class="card">
-                        <div class="card-title"><span>📥</span> Add Music</div>
-                        <div class="drop-zone" id="globalDropZone" tabindex="0">
-                            <input type="file" id="fileInput" multiple accept="audio/*">
-                            <div class="drop-icon">🎵</div>
-                            <div class="drop-text">Drop MP3s or <span class="highlight">Ctrl+V</span> to paste</div>
-                            <div class="drop-subtext">Auto-syncs to connected devices</div>
-                        </div>
-                        
-                        <button class="btn btn-outline btn-sm" onclick="document.getElementById('localScanInput').click()" style="margin-top: 12px;">
-                            📂 Scan Local Device for Music
-                        </button>
-                        <input type="file" id="localScanInput" webkitdirectory directory multiple accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a" style="display:none">
-
-                        <div class="input-group" style="margin-top: 14px; margin-bottom: 0;">
-                            <label>Stream from URL</label>
-                            <div style="display: flex; gap: 6px;">
-                                <input type="text" class="input-field" id="streamUrl" placeholder="https://...mp3">
-                                <button class="btn btn-primary btn-sm" onclick="addStreamUrl()" style="width: auto;">Add</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-title"><span>📚</span> Library <span class="badge" id="libCount">0</span></div>
-                        <div class="file-list" id="libraryList">
-                            <div class="empty-state">No tracks yet. Drop, paste, or scan local files!</div>
-                        </div>
-                    </div>
-                </div>
+            <div class="card">
+                <div class="card-title">👥 Connected <span class="badge" id="peerCount">0</span></div>
+                <div id="peerList"><div class="empty-state">No devices connected</div></div>
             </div>
         </div>
 
-        <footer>
-            <p> True P2P sync. IndexedDB caches tracks for instant, always-on playback.</p>
-            <p style="margin-top: 5px;">PossibilityData © 2026</p>
+        <!-- DEVICES TAB -->
+        <div id="tab-devices" class="section">
+            <div class="card">
+                <div class="card-title">📡 Bluetooth Speaker Setup</div>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
+                    1. Click "Pair Bluetooth Speaker" to open the browser popup and allow pairing.<br>
+                    2. Click "Refresh Outputs" to see your connected laptop Bluetooth devices.<br>
+                    3. Click "Route Here" on your speaker to send music to it.
+                </p>
+                <button class="btn btn-bt" onclick="promptBluetoothPairing()">📡 Pair Bluetooth Speaker (Open Popup)</button>
+                <button class="btn btn-outline" onclick="refreshBluetooth()" style="margin-top: 8px;">🔄 Refresh Connected Outputs</button>
+            </div>
+
+            <div class="card">
+                <div class="card-title">🔊 Available Audio Outputs</div>
+                <div id="audioDevices"><div class="empty-state">Click "Refresh Connected Outputs" above</div></div>
+            </div>
+        </div>
+
+        <footer style="text-align: center; padding: 20px 0; color: var(--text-secondary); font-size: 11px;">
+            PossibilityData Music © 2026 · Always Playing · P2P Synced · Duplicate-Free
         </footer>
     </div>
 
-    <!-- QR Modal -->
+    <!-- Modals -->
     <div class="modal-overlay" id="qrModal">
         <div class="modal">
-            <h3 style="margin-bottom: 12px; font-size: 1.2rem;">📱 Scan to Auto-Join</h3>
-            <div class="qr-container" id="qrContainer"></div>
-            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Point your phone camera at this code. It will open and auto-connect.</p>
+            <h3 style="margin-bottom: 12px;">📱 Scan to Auto-Connect</h3>
+            <div id="qrContainer" style="background: white; padding: 16px; border-radius: 12px; display: inline-block;"></div>
+            <p style="color: var(--text-secondary); font-size: 12px; margin-top: 12px;">Phone will auto-join and sync library instantly</p>
             <button class="modal-close" onclick="closeQR()">Close</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="scannerModal">
+        <div class="modal">
+            <h3 style="margin-bottom: 12px;">📷 Scan Room QR</h3>
+            <div id="qr-reader" style="border-radius: 12px; overflow: hidden;"></div>
+            <button class="modal-close" onclick="stopQRScanner()" style="margin-top: 12px;">Cancel</button>
         </div>
     </div>
 
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- Hidden input for directory scanning fallback -->
+    <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac">
+
     <script>
-        // ==================== GLOBAL STATE ====================
-        let appInitialized = false;
-        let audioContext = null;
-        let wakeLock = null;
-        let playbackRetryInterval = null;
-        
-        // ==================== INDEXED DB SETUP ====================
-        const dbPromise = new Promise((resolve, reject) => {
-            const request = indexedDB.open('PossibilityMusicDB', 1);
-            request.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains('metadata')) db.createObjectStore('metadata', { keyPath: 'id' });
-                if (!db.objectStoreNames.contains('blobs')) db.createObjectStore('blobs', { keyPath: 'id' });
+    // ==================== STATE ====================
+    let peer = null, connections = {}, isHost = false, myPeerId = null;
+    let html5QrCode = null;
+    let playlist = [], currentTrackIndex = -1;
+    let mainAudio = new Audio();
+    let audioContext = null, mainGainNode = null;
+    let isPlaying = false, isDraggingProgress = false;
+    let db = null;
+    let btDetected = false;
+
+    // DOM
+    const statusBar = document.getElementById('statusBar');
+    const statusText = document.getElementById('statusText');
+    const playlistEl = document.getElementById('playlist');
+    const trackCountEl = document.getElementById('trackCount');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+
+    // ==================== INDEXED DB (Persistent Storage) ====================
+    function initDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open('PossibilityMusicDB_v3', 2);
+            req.onerror = () => reject(req.error);
+            req.onsuccess = () => { db = req.result; resolve(db); };
+            req.onupgradeneeded = (e) => {
+                const database = e.target.result;
+                if (!database.objectStoreNames.contains('tracks')) {
+                    const store = database.createObjectStore('tracks', { keyPath: 'id' });
+                    store.createIndex('name', 'name', { unique: false });
+                }
+                if (!database.objectStoreNames.contains('blobs')) {
+                    database.createObjectStore('blobs', { keyPath: 'id' });
+                }
             };
-            request.onsuccess = (e) => resolve(e.target.result);
-            request.onerror = (e) => reject(e);
         });
+    }
 
-        async function saveMetadata(meta) {
-            const db = await dbPromise;
-            const tx = db.transaction('metadata', 'readwrite');
-            tx.objectStore('metadata').put(meta);
-        }
+    async function saveTrack(track, blob) {
+        if (!db) return;
+        const tx = db.transaction(['tracks', 'blobs'], 'readwrite');
+        tx.objectStore('tracks').put(track);
+        if (blob) tx.objectStore('blobs').put({ id: track.id, blob, type: blob.type, name: track.name });
+        return new Promise(r => { tx.oncomplete = r; });
+    }
 
-        async function saveBlob(id, blob) {
-            const db = await dbPromise;
-            const tx = db.transaction('blobs', 'readwrite');
-            tx.objectStore('blobs').put({ id, blob });
-        }
+    async function getTrackBlob(id) {
+        if (!db) return null;
+        const tx = db.transaction('blobs', 'readonly');
+        return new Promise((resolve) => {
+            const req = tx.objectStore('blobs').get(id);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => resolve(null);
+        });
+    }
 
-        async function getBlob(id) {
-            const db = await dbPromise;
-            return new Promise((resolve) => {
-                const tx = db.transaction('blobs', 'readonly');
-                const req = tx.objectStore('blobs').get(id);
-                req.onsuccess = () => resolve(req.result ? req.result.blob : null);
-            });
-        }
+    async function getAllTracks() {
+        if (!db) return [];
+        const tx = db.transaction('tracks', 'readonly');
+        return new Promise((resolve) => {
+            const req = tx.objectStore('tracks').getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => resolve([]);
+        });
+    }
 
-        async function getAllMetadata() {
-            const db = await dbPromise;
-            return new Promise((resolve) => {
-                const tx = db.transaction('metadata', 'readonly');
-                const req = tx.objectStore('metadata').getAll();
-                req.onsuccess = () => resolve(req.result);
-            });
-        }
+    // ==================== DUPLICATE PREVENTION ====================
+    async function isDuplicate(name, size) {
+        const tracks = await getAllTracks();
+        // Check by name and similar size (within 1KB to account for metadata differences)
+        return tracks.some(t => t.name === name && Math.abs(t.size - size) < 1024);
+    }
 
-        async function deleteTrack(id) {
-            const db = await dbPromise;
-            let tx = db.transaction('metadata', 'readwrite');
-            tx.objectStore('metadata').delete(id);
-            tx = db.transaction('blobs', 'readwrite');
-            tx.objectStore('blobs').delete(id);
-            renderLibrary();
-            showToast('️ Track removed from library');
-        }
+    // ==================== UTILS ====================
+    function generateId(len = 8) {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let r = ''; for (let i = 0; i < len; i++) r += chars[Math.floor(Math.random() * chars.length)];
+        return r;
+    }
 
-        // ==================== STATE & UTILS ====================
-        let peer = null, connections = {}, isHost = false, myPeerId = '';
-        const players = {};
-        let playerCounter = 0;
-        const receivingTracks = {};
+    function formatTime(s) {
+        if (isNaN(s)) return '0:00';
+        const m = Math.floor(s / 60);
+        const sec = Math.floor(s % 60);
+        return `${m}:${sec.toString().padStart(2, '0')}`;
+    }
 
-        function generateId(length = 6) {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let result = '';
-            for (let i = 0; i < length; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
-            return result;
-        }
+    function showToast(msg, type = 'success') {
+        const c = document.getElementById('toastContainer');
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        t.innerHTML = msg;
+        c.appendChild(t);
+        setTimeout(() => t.remove(), 4000);
+    }
 
-        function formatSize(bytes) {
-            if (bytes === 0) return '0 B';
-            const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-        }
+    function setStatus(type, text) {
+        statusBar.className = `status-bar ${type}`;
+        statusText.textContent = text;
+    }
 
-        function formatTime(seconds) {
-            if (isNaN(seconds)) return '0:00';
-            const m = Math.floor(seconds / 60);
-            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-            return `${m}:${s}`;
-        }
+    function showTab(tab) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        event.target.classList.add('active');
+    }
 
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.textContent = message;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 4000);
-        }
-
-        function setStatus(type, text) {
-            const bar = document.getElementById('statusBar');
-            bar.className = `status-bar ${type}`;
-            document.getElementById('statusText').textContent = text;
-        }
-
-        // ==================== CRITICAL: APP INITIALIZATION ====================
-        async function initializeApp() {
-            if (appInitialized) return;
-            
-            try {
-                // Create audio context on user gesture (required for autoplay)
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                await audioContext.resume();
-                
-                // Request wake lock
-                await requestWakeLock();
-                
-                // Request all permissions
-                await requestAllPermissions();
-                
-                // Hide overlay
-                document.getElementById('startOverlay').classList.add('hidden');
-                appInitialized = true;
-                
-                showToast('✅ Audio enabled! Music will play continuously.', 'success');
-                
-                // Start playback retry mechanism
-                startPlaybackRetry();
-                
-                // Auto-add first player if none exists
-                if (Object.keys(players).length === 0) {
-                    addPlayer();
-                }
-                
-            } catch (error) {
-                console.error('Init error:', error);
-                showToast('⚠️ Please allow audio permissions in your browser', 'warning');
-                document.getElementById('permissionBanner').classList.add('show');
-            }
-        }
-
-        async function requestAllPermissions() {
-            try {
-                // Request microphone permission (triggers browser permission prompt)
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    stream.getTracks().forEach(track => track.stop()); // Don't actually use mic
-                    showToast('✅ Audio permissions granted!', 'success');
-                    document.getElementById('permissionBanner').classList.remove('show');
-                }
-                
-                // Resume audio context
-                if (audioContext && audioContext.state === 'suspended') {
-                    await audioContext.resume();
-                }
-                
-                // Request wake lock
-                await requestWakeLock();
-                
-            } catch (error) {
-                console.error('Permission error:', error);
-                showToast('⚠️ Please allow permissions in browser settings', 'warning');
-            }
-        }
-
-        async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    wakeLock.addEventListener('release', () => {
-                        console.log('Wake lock released');
-                        // Auto-reacquire wake lock
-                        setTimeout(() => requestWakeLock(), 1000);
-                    });
-                    console.log('Wake lock active');
-                }
-            } catch (err) {
-                console.warn('Wake lock failed:', err);
-            }
-        }
-
-        function startPlaybackRetry() {
-            // Retry playback every 2 seconds if not playing
-            playbackRetryInterval = setInterval(() => {
-                if (!appInitialized) return;
-                
-                // Try to resume audio context
-                if (audioContext && audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-                
-                // Try to play on all players
-                Object.values(players).forEach(player => {
-                    if (!player.isPlaying && player.playlist.length > 0) {
-                        player.play().catch(() => {});
-                    }
-                });
-                
-                // Re-request wake lock
-                if (!wakeLock || wakeLock.released) {
-                    requestWakeLock();
-                }
-            }, 2000);
-        }
-
-        // ==================== MUSIC PLAYER CLASS ====================
-        class MusicPlayer {
-            constructor(id) {
-                this.id = id;
-                this.audio = new Audio();
-                this.audio.crossOrigin = "anonymous";
-                this.audio.loop = false;
-                this.playlist = [];
-                this.currentIndex = -1;
-                this.isPlaying = false;
-                this.playAttemptCount = 0;
-                
-                // Create audio context for this player
-                this.audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
-                this.source = this.audioContext.createMediaElementSource(this.audio);
-                this.panner = this.audioContext.createStereoPanner();
-                this.source.connect(this.panner);
-                this.panner.connect(this.audioContext.destination);
-                
-                this.audio.addEventListener('ended', () => this.playNext());
-                this.audio.addEventListener('timeupdate', () => this.updateSeekUI());
-                this.audio.addEventListener('error', (e) => this.handlePlaybackError(e));
-                this.audio.addEventListener('playing', () => {
-                    this.isPlaying = true;
-                    this.playAttemptCount = 0;
-                    this.updateUI();
-                    updateGlobalStatus();
-                });
-                this.audio.addEventListener('pause', () => {
-                    this.isPlaying = false;
-                    this.updateUI();
-                    updateGlobalStatus();
-                });
-                
-                this.render();
-            }
-
-            setPan(value) {
-                this.panner.pan.value = parseFloat(value);
-                const card = document.getElementById(`player-${this.id}`);
-                card.querySelectorAll('.pan-buttons button').forEach(btn => btn.classList.remove('active'));
-                if (value == -1) card.querySelector('.pan-left').classList.add('active');
-                else if (value == 1) card.querySelector('.pan-right').classList.add('active');
-                else card.querySelector('.pan-center').classList.add('active');
-            }
-
-            async setOutput(deviceId) {
-                if (deviceId && this.audio.setSinkId) {
-                    try {
-                        await this.audio.setSinkId(deviceId);
-                        showToast(`✅ Routed to selected device`, 'success');
-                    } catch (e) { 
-                        showToast('️ Cannot route (tap Play first)', 'warning'); 
-                    }
-                }
-            }
-
-            async autoRouteToBluetooth() {
-                if (!this.audio.setSinkId) return;
-                try {
-                    const devices = await navigator.mediaDevices.enumerateDevices();
-                    const btDevice = devices.find(d => d.kind === 'audiooutput' && 
-                        (d.label.toLowerCase().includes('bluetooth') || 
-                         d.label.toLowerCase().includes('headphone') || 
-                         d.label.toLowerCase().includes('earbud') || 
-                         d.label.toLowerCase().includes('airpods') ||
-                         d.label.toLowerCase().includes('speaker')));
-                    
-                    if (btDevice) {
-                        await this.audio.setSinkId(btDevice.deviceId);
-                        const select = document.getElementById(`device-select-${this.id}`);
-                        if (select) select.value = btDevice.deviceId;
-                        showToast(` Auto-routed to ${btDevice.label}`, 'success');
-                        return true;
-                    }
-                } catch (e) { console.warn('Auto BT route failed:', e); }
-                return false;
-            }
-
-            async loadTrack(track) {
-                this.currentTrack = track;
-                if (track.isStream) {
-                    this.audio.src = track.url;
-                } else {
-                    const blob = await getBlob(track.id);
-                    if (blob) {
-                        if (this.audio.src && this.audio.src.startsWith('blob:')) URL.revokeObjectURL(this.audio.src);
-                        this.audio.src = URL.createObjectURL(blob);
-                    }
-                }
-                this.updateMediaSession();
-                this.updateUI();
-            }
-
-            async play() {
-                if (!appInitialized) {
-                    showToast('⚠️ Tap the screen to enable audio first', 'warning');
-                    document.getElementById('startOverlay').classList.remove('hidden');
-                    return false;
-                }
-
-                if (!this.currentTrack) {
-                    if (this.playlist.length > 0) {
-                        this.currentIndex = 0;
-                        await this.loadTrack(this.playlist[0]);
-                    } else {
-                        showToast('⚠️ Add music to the playlist first', 'warning');
-                        return false;
-                    }
-                }
-
-                // Ensure audio context is running
-                if (this.audioContext.state === 'suspended') {
-                    await this.audioContext.resume();
-                }
-
-                // Try to route to Bluetooth
-                await this.autoRouteToBluetooth();
-
-                // Attempt playback with retry
-                try {
-                    await this.audio.play();
-                    this.isPlaying = true;
-                    this.playAttemptCount = 0;
-                    this.updateUI();
-                    updateGlobalStatus();
-                    showToast('🎵 Now Playing', 'success');
-                    return true;
-                } catch (e) {
-                    this.playAttemptCount++;
-                    console.error('Playback error:', e);
-                    
-                    if (e.name === 'NotAllowedError' || e.message.includes('play() failed')) {
-                        if (this.playAttemptCount < 3) {
-                            // Retry after short delay
-                            setTimeout(() => this.play(), 500);
-                        } else {
-                            showToast('⚠️ Tap anywhere to allow playback', 'warning');
-                            document.getElementById('permissionBanner').classList.add('show');
-                        }
-                    }
-                    return false;
-                }
-            }
-
-            handlePlaybackError(e) {
-                console.error('Audio error:', e);
-                this.isPlaying = false;
-                this.updateUI();
-                
-                // Auto-retry after error
+    // ==================== AUTO-CONNECT ON SCAN ====================
+    function checkAutoJoin() {
+        const hash = window.location.hash;
+        if (hash.startsWith('#join=')) {
+            const identifier = decodeURIComponent(hash.substring(6));
+            if (identifier && identifier.length >= 3) {
+                document.getElementById('joinIdentifier').value = identifier;
+                showTab('connect');
+                showToast('📱 QR Scanned! Auto-connecting...', 'info');
                 setTimeout(() => {
-                    if (this.playlist.length > 0) {
-                        this.play();
+                    joinRoom();
+                    history.replaceState(null, null, window.location.pathname);
+                }, 800);
+            }
+        }
+    }
+
+    // ==================== PEER CONNECTION ====================
+    function createRoom() {
+        let id = document.getElementById('myIdentifier').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g, '');
+        if (!id || id.length < 3) id = 'music-' + generateId(5);
+        document.getElementById('myIdentifier').value = id;
+
+        const btn = document.getElementById('createRoomBtn');
+        btn.disabled = true; btn.innerHTML = '⏳ Creating...';
+
+        peer = new Peer(id, {
+            debug: 0,
+            config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+        });
+
+        peer.on('open', (pid) => {
+            myPeerId = pid; isHost = true;
+            setStatus('connected', `Room "${id}" active. Waiting for phone...`);
+            showToast(`✅ Room "${id}" created! Show QR to phone.`);
+            btn.disabled = false; btn.innerHTML = 'Create Music Room';
+            refreshBluetooth(); // Auto-detect BT on room creation
+        });
+
+        peer.on('connection', (conn) => handleConnection(conn));
+        peer.on('error', (err) => {
+            showToast(`❌ ${err.type}`, 'error');
+            btn.disabled = false; btn.innerHTML = 'Create Music Room';
+        });
+    }
+
+    function joinRoom() {
+        const id = document.getElementById('joinIdentifier').value.trim().toLowerCase();
+        if (!id || id.length < 3) { showToast('⚠️ Enter valid room ID', 'error'); return; }
+
+        const btn = document.getElementById('joinRoomBtn');
+        btn.disabled = true; btn.innerHTML = '⏳ Joining...';
+
+        peer = new Peer(`phone-${generateId(6)}`, {
+            debug: 0,
+            config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+        });
+
+        peer.on('open', () => {
+            const conn = peer.connect(id, {
+                reliable: true,
+                metadata: { name: 'Phone', displayName: 'Mobile Device' }
+            });
+            handleConnection(conn);
+            btn.disabled = false; btn.innerHTML = 'Join Room';
+            refreshBluetooth();
+        });
+
+        peer.on('error', (err) => {
+            showToast(`❌ Room not found. Check ID.`, 'error');
+            btn.disabled = false; btn.innerHTML = 'Join Room';
+        });
+    }
+
+    function handleConnection(conn) {
+        conn.on('open', () => {
+            connections[conn.peer] = conn;
+            updatePeerList();
+            setStatus('connected', `${Object.keys(connections).length} device(s) connected`);
+            showToast('🎉 Device connected! Syncing library...');
+            
+            if (isHost && playlist.length > 0) {
+                conn.send({ type: 'playlist-sync', playlist: playlist.map(p => ({ id: p.id, name: p.name, duration: p.duration, size: p.size })) });
+            }
+        });
+        conn.on('data', (data) => {
+            if (data.type === 'file') receiveFile(data);
+            else if (data.type === 'playlist-sync') handlePlaylistSync(data.playlist);
+        });
+        conn.on('close', () => {
+            delete connections[conn.peer];
+            updatePeerList();
+            setStatus('connected', `${Object.keys(connections).length} device(s) connected`);
+        });
+    }
+
+    function updatePeerList() {
+        const peers = Object.keys(connections);
+        document.getElementById('peerCount').textContent = peers.length;
+        const list = document.getElementById('peerList');
+        if (!peers.length) { list.innerHTML = '<div class="empty-state">No devices connected</div>'; return; }
+        list.innerHTML = '';
+        peers.forEach((pid) => {
+            const conn = connections[pid];
+            const d = document.createElement('div');
+            d.className = 'device-item';
+            d.innerHTML = `
+                <div class="device-icon">📱</div>
+                <div class="device-info">
+                    <div class="device-name">${conn.metadata?.displayName || 'Device'}</div>
+                    <div class="device-type">P2P Connected</div>
+                </div>
+                <div class="device-status">Online</div>
+            `;
+            list.appendChild(d);
+        });
+    }
+
+    function handlePlaylistSync(remoteList) {
+        showToast('🔄 Library synced with host', 'info');
+    }
+
+    function showRoomQR() {
+        const id = document.getElementById('myIdentifier').value;
+        if (!id) { showToast('Create room first', 'error'); return; }
+        const url = `${window.location.href.split('#')[0]}#join=${encodeURIComponent(id)}`;
+        document.getElementById('qrContainer').innerHTML = '';
+        new QRCode(document.getElementById('qrContainer'), { text: url, width: 220, height: 220 });
+        document.getElementById('qrModal').classList.add('show');
+    }
+    function closeQR() { document.getElementById('qrModal').classList.remove('show'); }
+
+    function startQRScanner() {
+        document.getElementById('scannerModal').classList.add('show');
+        html5QrCode = new Html5Qrcode("qr-reader");
+        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
+            (text) => {
+                stopQRScanner();
+                if (text.includes('#join=')) {
+                    document.getElementById('joinIdentifier').value = decodeURIComponent(text.split('#join=')[1]);
+                    joinRoom(); // Auto connects after scan!
+                }
+            }
+        ).catch(() => showToast('⚠️ Camera access denied', 'error'));
+    }
+    function stopQRScanner() {
+        document.getElementById('scannerModal').classList.remove('show');
+        if (html5QrCode) { html5QrCode.stop().catch(()=>{}); }
+    }
+
+    // ==================== FILE HANDLING & FOLDER SELECTION ====================
+    async function addFilesToPlaylist(files, isFromFolder = false) {
+        let addedCount = 0;
+        let skippedCount = 0;
+
+        for (const file of files) {
+            if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|wav|ogg|m4a|flac|aac)$/i)) continue;
+            
+            // DUPLICATE CHECK
+            if (await isDuplicate(file.name, file.size)) {
+                skippedCount++;
+                continue;
+            }
+
+            const id = 'trk_' + generateId(8);
+            const track = {
+                id, name: file.name.replace(/\.[^/.]+$/, ''),
+                type: file.type || 'audio/mpeg', size: file.size,
+                duration: 0, added: Date.now(), source: 'local'
+            };
+            
+            // Get duration
+            const tempUrl = URL.createObjectURL(file);
+            const tempAudio = new Audio();
+            tempAudio.src = tempUrl;
+            await new Promise(r => { 
+                tempAudio.onloadedmetadata = () => { track.duration = tempAudio.duration; r(); }; 
+                tempAudio.onerror = r; 
+            });
+            URL.revokeObjectURL(tempUrl);
+
+            await saveTrack(track, file);
+            playlist.push(track);
+            addedCount++;
+
+            // Auto-sync to connected phones
+            if (Object.keys(connections).length) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    for (const pid in connections) {
+                        try { connections[pid].send({ type: 'file', fileInfo: track, blob: e.target.result }); } catch(err){}
                     }
-                }, 2000);
+                };
+                reader.readAsArrayBuffer(file);
             }
+        }
 
-            pause() {
-                this.audio.pause();
-                this.isPlaying = false;
-                this.updateUI();
-                updateGlobalStatus();
-            }
+        if (addedCount > 0) {
+            renderPlaylist();
+            showToast(`✅ Added ${addedCount} track(s) to permanent library`, 'success');
+            if (skippedCount > 0) showToast(`⚠️ Skipped ${skippedCount} duplicate(s)`, 'warning');
+            
+            // Auto-play if nothing is playing
+            if (!isPlaying && currentTrackIndex === -1) playTrack(0);
+        } else if (skippedCount > 0) {
+            showToast(`⚠️ All ${skippedCount} files were duplicates`, 'warning');
+        } else {
+            showToast('⚠️ No valid audio files found', 'warning');
+        }
+    }
 
-            togglePlay() {
-                if (this.isPlaying) this.pause();
-                else this.play();
-            }
+    function receiveFile(data) {
+        // Phone receiving file from laptop
+        const blob = new Blob([data.blob], { type: data.fileInfo.type });
+        const file = new File([blob], data.fileInfo.name, { type: data.fileInfo.type });
+        addFilesToPlaylist([file]);
+    }
 
-            async playNext() {
-                if (this.currentIndex < this.playlist.length - 1) {
-                    this.currentIndex++;
-                    await this.loadTrack(this.playlist[this.currentIndex]);
-                    await this.play();
+    async function selectMusicFolder() {
+        try {
+            if ('showDirectoryPicker' in window) {
+                const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+                showToast('📁 Scanning folder for audio files...', 'info');
+                const files = [];
+                for await (const entry of dirHandle.values()) {
+                    if (entry.kind === 'file' && entry.name.match(/\.(mp3|wav|ogg|m4a|flac|aac)$/i)) {
+                        files.push(await entry.getFile());
+                    }
+                }
+                if (files.length > 0) {
+                    await addFilesToPlaylist(files, true);
                 } else {
-                    // Loop back to start for "always playing" quality
-                    if (this.playlist.length > 0) {
-                        this.currentIndex = 0;
-                        await this.loadTrack(this.playlist[0]);
-                        await this.play();
-                    }
+                    showToast('⚠️ No audio files found in selected folder', 'warning');
                 }
+            } else {
+                document.getElementById('folderInput').click();
             }
-
-            prev() {
-                if (this.audio.currentTime > 3) {
-                    this.audio.currentTime = 0;
-                } else if (this.currentIndex > 0) {
-                    this.currentIndex--;
-                    this.loadTrack(this.playlist[this.currentIndex]).then(() => this.play());
-                }
-            }
-
-            addToPlaylist(track) {
-                this.playlist.push(track);
-                if (this.currentIndex === -1) {
-                    this.currentIndex = 0;
-                    this.loadTrack(track);
-                }
-                this.renderPlaylist();
-            }
-
-            updateSeekUI() {
-                const seek = document.getElementById(`seek-${this.id}`);
-                const cur = document.getElementById(`current-time-${this.id}`);
-                const dur = document.getElementById(`duration-${this.id}`);
-                if (seek && this.audio.duration) {
-                    if (!seek.matches(':active')) {
-                        seek.value = (this.audio.currentTime / this.audio.duration) * 100;
-                    }
-                    cur.textContent = formatTime(this.audio.currentTime);
-                    dur.textContent = formatTime(this.audio.duration);
-                }
-            }
-
-            seek(value) {
-                if (this.audio.duration) {
-                    this.audio.currentTime = (value / 100) * this.audio.duration;
-                }
-            }
-
-            updateMediaSession() {
-                if ('mediaSession' in navigator && this.currentTrack) {
-                    navigator.mediaSession.metadata = new MediaMetadata({
-                        title: this.currentTrack.name,
-                        artist: 'PossibilityData Player',
-                        album: 'P2P Sync Library'
-                    });
-                    navigator.mediaSession.setActionHandler('play', () => this.play());
-                    navigator.mediaSession.setActionHandler('pause', () => this.pause());
-                    navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
-                    navigator.mediaSession.setActionHandler('previoustrack', () => this.prev());
-                    navigator.mediaSession.setActionHandler('seekto', (details) => {
-                        this.audio.currentTime = details.seekTime;
-                    });
-                }
-            }
-
-            render() {
-                const container = document.getElementById('playersContainer');
-                const div = document.createElement('div');
-                div.className = 'player-card';
-                div.id = `player-${this.id}`;
-                div.innerHTML = `
-                    <div class="player-header">
-                        <span>🎧 Player ${this.id}</span>
-                        <button class="btn btn-danger btn-sm" onclick="removePlayer(${this.id})">✕</button>
-                    </div>
-                    <div class="track-info" id="track-info-${this.id}">No track loaded</div>
-                    
-                    <div class="seek-control">
-                        <span id="current-time-${this.id}">0:00</span>
-                        <input type="range" min="0" max="100" value="0" step="0.1" id="seek-${this.id}">
-                        <span id="duration-${this.id}">0:00</span>
-                    </div>
-
-                    <div class="player-controls">
-                        <button onclick="players[${this.id}].prev()" title="Previous">⏮</button>
-                        <button class="play-btn" onclick="players[${this.id}].togglePlay()" id="play-btn-${this.id}" title="Play/Pause">▶</button>
-                        <button onclick="players[${this.id}].playNext()" title="Next">⏭</button>
-                    </div>
-
-                    <div class="pan-control">
-                        <span>L</span>
-                        <input type="range" min="-1" max="1" step="0.1" value="0" oninput="players[${this.id}].setPan(this.value)">
-                        <span>R</span>
-                    </div>
-                    <div class="pan-buttons">
-                        <button class="pan-left" onclick="players[${this.id}].setPan(-1)">Only Left</button>
-                        <button class="pan-center active" onclick="players[${this.id}].setPan(0)">Center</button>
-                        <button class="pan-right" onclick="players[${this.id}].setPan(1)">Only Right</button>
-                    </div>
-
-                    <div class="device-control">
-                        <label>Output Device (Auto-detects Bluetooth):</label>
-                        <select onchange="players[${this.id}].setOutput(this.value)" id="device-select-${this.id}">
-                            <option value="">Default System Audio</option>
-                        </select>
-                    </div>
-                    <div class="player-playlist" id="playlist-${this.id}"></div>
-                    <button class="btn btn-outline btn-sm" onclick="addLibraryToPlayer(${this.id})">+ Add All from Library</button>
-                `;
-                container.appendChild(div);
-                
-                // Seek event listener
-                document.getElementById(`seek-${this.id}`).addEventListener('input', (e) => this.seek(e.target.value));
-                
-                renderAudioDevices();
-            }
-
-            updateUI() {
-                const info = document.getElementById(`track-info-${this.id}`);
-                const btn = document.getElementById(`play-btn-${this.id}`);
-                if (this.currentTrack) {
-                    info.textContent = `${this.currentTrack.name} ${this.isPlaying ? '▶' : '⏸'}`;
-                    info.className = `track-info ${this.isPlaying ? 'active' : ''}`;
-                }
-                btn.textContent = this.isPlaying ? '⏸' : '▶';
-                this.renderPlaylist();
-            }
-
-            renderPlaylist() {
-                const list = document.getElementById(`playlist-${this.id}`);
-                list.innerHTML = '';
-                this.playlist.forEach((track, idx) => {
-                    const item = document.createElement('div');
-                    item.className = `playlist-item ${idx === this.currentIndex ? 'active' : ''}`;
-                    item.innerHTML = `<span>${idx + 1}. ${track.name}</span>`;
-                    item.onclick = async () => {
-                        this.currentIndex = idx;
-                        await this.loadTrack(track);
-                        await this.play();
-                    };
-                    list.appendChild(item);
-                });
-            }
+        } catch(err) {
+            console.log("Folder selection cancelled or failed");
         }
+    }
 
-        function updateGlobalStatus() {
-            const anyPlaying = Object.values(players).some(p => p.isPlaying);
-            const connectedCount = Object.keys(connections).length;
+    document.getElementById('folderInput').addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files).filter(f => f.type.startsWith('audio/') || f.name.match(/\.(mp3|wav|ogg|m4a|flac|aac)$/i));
+        if (files.length) {
+            await addFilesToPlaylist(files, true);
+        }
+        e.target.value = ''; // Reset
+    });
+
+    // ==================== PLAYLIST & PLAYBACK ====================
+    function renderPlaylist() {
+        trackCountEl.textContent = playlist.length;
+        if (!playlist.length) {
+            playlistEl.innerHTML = '<div class="empty-state">No tracks yet. Drop, paste, or import a folder.</div>';
+            return;
+        }
+        playlistEl.innerHTML = '';
+        playlist.forEach((t, i) => {
+            const div = document.createElement('div');
+            div.className = 'track-item' + (i === currentTrackIndex ? ' active' : '');
+            div.onclick = () => playTrack(i);
+            div.innerHTML = `
+                <div class="track-thumb">${i === currentTrackIndex && isPlaying ? '🔊' : '🎵'}</div>
+                <div class="track-meta">
+                    <div class="track-name">${t.name}</div>
+                    <div class="track-detail">${formatTime(t.duration)} · ${(t.size/1024/1024).toFixed(1)} MB</div>
+                </div>
+                <button class="mini-btn" onclick="event.stopPropagation(); removeTrack(${i})">✕</button>
+            `;
+            playlistEl.appendChild(div);
+        });
+    }
+
+    async function playTrack(index) {
+        if (index < 0 || index >= playlist.length) return;
+        currentTrackIndex = index;
+        const track = playlist[index];
+
+        document.getElementById('currentTrackTitle').textContent = track.name;
+        document.getElementById('currentTrackArtist').innerHTML = `Track ${index + 1} of ${playlist.length} <span class="bt-badge" id="btBadge" style="${btDetected ? 'display:inline-block' : 'display:none'}">🎧 BT ACTIVE</span>`;
+
+        let url = track.url;
+        if (!url && track.source === 'local') {
+            const rec = await getTrackBlob(track.id);
+            if (rec?.blob) url = URL.createObjectURL(rec.blob);
+        }
+        if (!url) { showToast('❌ Track data missing', 'error'); nextTrack(); return; }
+
+        mainAudio.src = url;
+        await setupAudioContext();
+        
+        const playPromise = mainAudio.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                isPlaying = true;
+                updatePlayButton();
+            }).catch(err => {
+                console.error("Autoplay prevented:", err);
+                showToast('⚠️ Tap play to start', 'info');
+            });
+        }
+        renderPlaylist();
+    }
+
+    function togglePlay() {
+        if (!mainAudio.src && playlist.length) { playTrack(0); return; }
+        if (isPlaying) {
+            mainAudio.pause();
+            isPlaying = false;
+        } else {
+            mainAudio.play().catch(e => console.error(e));
+            isPlaying = true;
+        }
+        updatePlayButton();
+    }
+
+    function updatePlayButton() {
+        document.getElementById('playPauseBtn').textContent = isPlaying ? '⏸' : '▶';
+        document.getElementById('albumArt').classList.toggle('playing', isPlaying);
+        renderPlaylist();
+    }
+
+    function nextTrack() {
+        if (!playlist.length) return;
+        const next = (currentTrackIndex + 1) % playlist.length;
+        playTrack(next);
+    }
+
+    function prevTrack() {
+        if (!playlist.length) return;
+        if (mainAudio.currentTime > 3) { mainAudio.currentTime = 0; return; }
+        const prev = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+        playTrack(prev);
+    }
+
+    function rewind() { mainAudio.currentTime = Math.max(0, mainAudio.currentTime - 10); }
+    function forward() { mainAudio.currentTime = Math.min(mainAudio.duration || 0, mainAudio.currentTime + 10); }
+
+    function removeTrack(i) {
+        playlist.splice(i, 1);
+        if (currentTrackIndex >= i) currentTrackIndex--;
+        if (currentTrackIndex >= playlist.length) currentTrackIndex = 0;
+        renderPlaylist();
+        if (playlist.length === 0) {
+            mainAudio.src = ''; isPlaying = false;
+            updatePlayButton();
+            document.getElementById('currentTrackTitle').textContent = 'Ready to Play';
+        } else if (currentTrackIndex === i) {
+            playTrack(currentTrackIndex);
+        }
+    }
+
+    function clearPlaylist() {
+        if (!confirm('Clear entire library? This cannot be undone.')) return;
+        playlist = []; currentTrackIndex = -1;
+        mainAudio.src = ''; isPlaying = false;
+        updatePlayButton();
+        renderPlaylist();
+        document.getElementById('currentTrackTitle').textContent = 'Ready to Play';
+    }
+
+    // ==================== TIMELINE SLIDING ====================
+    function setupProgressSlider() {
+        let isDragging = false;
+
+        const updateProgress = (clientX) => {
+            const rect = progressBar.getBoundingClientRect();
+            let pct = (clientX - rect.left) / rect.width;
+            pct = Math.max(0, Math.min(1, pct));
+            progressFill.style.width = (pct * 100) + '%';
+            if (mainAudio.duration) {
+                mainAudio.currentTime = pct * mainAudio.duration;
+                document.getElementById('currentTime').textContent = formatTime(mainAudio.currentTime);
+            }
+        };
+
+        progressBar.addEventListener('mousedown', (e) => { isDragging = true; updateProgress(e.clientX); });
+        progressBar.addEventListener('touchstart', (e) => { isDragging = true; updateProgress(e.touches[0].clientX); }, {passive: true});
+
+        window.addEventListener('mousemove', (e) => { if (isDragging) updateProgress(e.clientX); });
+        window.addEventListener('touchmove', (e) => { if (isDragging) updateProgress(e.touches[0].clientX); }, {passive: true});
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+        window.addEventListener('touchend', () => { isDragging = false; });
+
+        progressBar.addEventListener('click', (e) => {
+            if (!isDragging) updateProgress(e.clientX);
+        });
+    }
+
+    mainAudio.addEventListener('timeupdate', () => {
+        if (mainAudio.duration && !isDragging) {
+            const pct = (mainAudio.currentTime / mainAudio.duration) * 100;
+            progressFill.style.width = pct + '%';
+            document.getElementById('currentTime').textContent = formatTime(mainAudio.currentTime);
+            document.getElementById('totalTime').textContent = formatTime(mainAudio.duration);
+        }
+    });
+
+    // ALWAYS PLAYING: Continuous Play
+    mainAudio.addEventListener('ended', () => {
+        nextTrack(); // Seamlessly play next
+    });
+
+    // ==================== AUDIO CONTEXT & BLUETOOTH DETECTION ====================
+    async function setupAudioContext() {
+        if (audioContext) return;
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaElementSource(mainAudio);
+        mainGainNode = audioContext.createGain();
+        source.connect(mainGainNode);
+        mainGainNode.connect(audioContext.destination);
+    }
+
+    async function refreshBluetooth() {
+        try {
+            // 1. Request permission to see device labels (required by browsers)
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const outputs = devices.filter(d => d.kind === 'audiooutput');
+            const container = document.getElementById('audioDevices');
             
-            if (anyPlaying) {
-                setStatus('playing', `🎵 Playing • ${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
-            } else if (connectedCount > 0) {
-                setStatus('connected', `${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
-            }
-        }
+            if (!outputs.length) { container.innerHTML = '<div class="empty-state">No outputs found</div>'; return; }
 
-        function addPlayer() {
-            playerCounter++;
-            players[playerCounter] = new MusicPlayer(playerCounter);
-        }
-
-        function removePlayer(id) {
-            if (players[id]) {
-                players[id].audio.pause();
-                delete players[id];
-                document.getElementById(`player-${id}`).remove();
-            }
-        }
-
-        async function renderAudioDevices() {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
-            try {
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
-                for (const id in players) {
-                    const select = document.getElementById(`device-select-${id}`);
-                    if (!select) continue;
-                    const currentVal = select.value;
-                    select.innerHTML = '<option value="">Default System Audio</option>';
-                    audioOutputs.forEach(device => {
-                        const option = document.createElement('option');
-                        option.value = device.deviceId;
-                        option.textContent = device.label || `Audio Device (${device.deviceId.substr(0,5)}...)`;
-                        select.appendChild(option);
-                    });
-                    select.value = currentVal;
-                }
-            } catch(e) { console.error(e); }
-        }
-
-        async function connectBluetooth() {
-            if (!navigator.bluetooth) {
-                showToast('️ Web Bluetooth not supported. Use Output Device dropdown.', 'warning');
-                return;
-            }
-            try {
-                showToast('🔍 Searching for Bluetooth devices...');
-                const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['battery_service'] });
-                showToast(`✅ Paired with "${device.name}". Select in Output Device dropdown.`, 'success');
-                setTimeout(renderAudioDevices, 1500);
-            } catch (err) { 
-                if (err.name !== 'NotFoundError') {
-                    showToast('⚠️ Bluetooth pairing cancelled', 'warning'); 
-                }
-            }
-        }
-
-        // ==================== LIBRARY & INGEST ====================
-        async function processNewAudioFile(file) {
-            const id = 'file_' + Date.now() + '_' + generateId();
-            const trackMeta = { id, name: file.name, size: file.size, type: file.type || 'audio/mpeg', isStream: false, timestamp: Date.now() };
-            await saveMetadata(trackMeta);
-            await saveBlob(id, file);
-            renderLibrary();
-            
-            if (isHost && Object.keys(connections).length > 0) {
-                announceTrackToPeers(trackMeta);
-            }
-            showToast(`✅ Added: ${file.name}`, 'success');
-        }
-
-        function addStreamUrl() {
-            const url = document.getElementById('streamUrl').value.trim();
-            if (!url) return;
-            const name = prompt('Track Name:', 'Streamed Track') || 'Streamed Track';
-            const track = { id: 'stream_' + Date.now(), name, type: 'audio/mpeg', url, isStream: true, timestamp: Date.now() };
-            saveMetadata(track);
-            renderLibrary();
-            document.getElementById('streamUrl').value = '';
-            showToast('✅ Stream URL added to library!', 'success');
-        }
-
-        async function renderLibrary() {
-            const tracks = await getAllMetadata();
-            const container = document.getElementById('libraryList');
-            document.getElementById('libCount').textContent = tracks.length;
             container.innerHTML = '';
-            
-            if (tracks.length === 0) {
-                container.innerHTML = '<div class="empty-state">No tracks in library.</div>';
-                return;
-            }
-            
-            tracks.sort((a, b) => b.timestamp - a.timestamp).forEach(track => {
+            let foundBT = false;
+
+            outputs.forEach(d => {
+                const isBT = /bluetooth|headphone|earbud|airpods|buds|galaxy|sony|bose|jbl|speaker/i.test(d.label);
+                if (isBT) foundBT = true;
+                
                 const div = document.createElement('div');
-                div.className = 'file-item';
+                div.className = 'device-item';
                 div.innerHTML = `
-                    <div class="file-icon">${track.isStream ? '🔗' : '🎵'}</div>
-                    <div class="file-info">
-                        <div class="file-name" title="${track.name}">${track.name}</div>
-                        <div class="file-meta">${track.isStream ? 'Stream URL' : formatSize(track.size)}</div>
+                    <div class="device-icon">${isBT ? '🎧' : '🔊'}</div>
+                    <div class="device-info">
+                        <div class="device-name">${d.label || 'Audio Output'}</div>
+                        <div class="device-type">${isBT ? 'Bluetooth Device' : 'System Output'}</div>
                     </div>
-                    <div class="file-actions">
-                        <button class="file-btn download" onclick="playTrackInActivePlayer('${track.id}')">▶</button>
-                        <button class="file-btn remove" onclick="deleteTrack('${track.id}')">✕</button>
-                    </div>
+                    <button class="mini-btn" onclick="setMainOutput('${d.deviceId}')">Route Here</button>
                 `;
                 container.appendChild(div);
             });
-        }
 
-        async function playTrackInActivePlayer(trackId) {
-            const db = await dbPromise;
-            const tx = db.transaction('metadata', 'readonly');
-            const req = tx.objectStore('metadata').get(trackId);
-            req.onsuccess = () => {
-                const track = req.result;
-                if (!track) return;
-                const playerId = Object.keys(players)[0] || 1;
-                if (players[playerId]) {
-                    players[playerId].addToPlaylist(track);
-                    players[playerId].currentIndex = players[playerId].playlist.length - 1;
-                    players[playerId].loadTrack(track).then(() => players[playerId].play());
-                }
-            };
-        }
-
-        function addLibraryToPlayer(playerId) {
-            getAllMetadata().then(tracks => {
-                tracks.forEach(track => players[playerId].addToPlaylist(track));
-                showToast(`✅ Added ${tracks.length} tracks to Player ${playerId}`, 'success');
-            });
-        }
-
-        // Drag & Drop and Paste
-        const globalDropZone = document.getElementById('globalDropZone');
-        const fileInput = document.getElementById('fileInput');
-        const localScanInput = document.getElementById('localScanInput');
-
-        globalDropZone.addEventListener('click', () => globalDropZone.focus());
-        globalDropZone.addEventListener('dragover', (e) => { e.preventDefault(); globalDropZone.classList.add('dragover'); });
-        globalDropZone.addEventListener('dragleave', () => globalDropZone.classList.remove('dragover'));
-        globalDropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            globalDropZone.classList.remove('dragover');
-            Array.from(e.dataTransfer.files).forEach(file => {
-                if (file.type.startsWith('audio/') || /\.(mp3|wav|ogg|flac|m4a)$/i.test(file.name)) {
-                    processNewAudioFile(file);
-                }
-            });
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            Array.from(e.target.files).forEach(file => processNewAudioFile(file));
-            fileInput.value = '';
-        });
-
-        // Local folder scan for phone/laptop
-        localScanInput.addEventListener('change', async (e) => {
-            const files = Array.from(e.target.files).filter(f => 
-                f.type.startsWith('audio/') || /\.(mp3|wav|ogg|flac|m4a|aac)$/i.test(f.name)
-            );
-            if (files.length === 0) {
-                showToast('⚠️ No audio files found in selected folder', 'warning');
-                return;
+            if (foundBT) {
+                btDetected = true;
+                document.getElementById('btBadge').style.display = 'inline-block';
+                showToast('🎧 Bluetooth devices detected! Click "Route Here" to use them.', 'info');
             }
-            showToast(` Processing ${files.length} local audio files...`);
-            for (const file of files) {
-                await processNewAudioFile(file);
+        } catch(err) {
+            showToast('⚠️ Allow microphone access to see device names', 'warning');
+        }
+    }
+
+    async function promptBluetoothPairing() {
+        if (!navigator.bluetooth) {
+            showToast('⚠️ Web Bluetooth not supported in this browser. Please pair your speaker in your OS settings first, then click "Refresh Connected Outputs".', 'warning');
+            return;
+        }
+        try {
+            showToast('📡 Opening Bluetooth pairing popup...', 'info');
+            const device = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: ['battery_service', 'device_information']
+            });
+            showToast(`✅ Paired with ${device.name}! Click "Refresh Connected Outputs" to route audio to it.`, 'success');
+            // Give the OS a second to register the new audio device
+            setTimeout(() => refreshBluetooth(), 1500);
+        } catch(err) {
+            if (err.name !== 'NotFoundError') showToast('❌ ' + err.message, 'error');
+        }
+    }
+
+    async function setMainOutput(deviceId) {
+        try {
+            if (typeof mainAudio.setSinkId === 'function') {
+                await mainAudio.setSinkId(deviceId);
+                showToast('🔊 Audio successfully routed to selected device', 'success');
+            } else {
+                showToast('⚠️ Browser does not support audio output routing (use Chrome/Edge)', 'warning');
             }
-            showToast(`✅ Added ${files.length} tracks to library!`, 'success');
-            localScanInput.value = '';
-        });
-
-        // Global paste listener
-        document.addEventListener('paste', async (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-            const items = e.clipboardData.items;
-            let fileAdded = false;
-            for (let item of items) {
-                if (item.kind === 'file' && (item.type.startsWith('audio/') || item.name.match(/\.(mp3|wav|ogg|flac|m4a)$/i))) {
-                    await processNewAudioFile(item.getAsFile());
-                    fileAdded = true;
-                }
-            }
-            if (fileAdded) showToast('✅ Audio pasted from clipboard!', 'success');
-        });
-
-        // ==================== P2P SYNC LOGIC ====================
-        function createRoom() {
-            let identifier = document.getElementById('myIdentifier').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g, '') || 'host-' + generateId();
-            document.getElementById('myIdentifier').value = identifier;
-            
-            const btn = document.getElementById('createRoomBtn');
-            btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Creating...';
-
-            peer = new Peer(identifier, { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
-
-            peer.on('open', (id) => {
-                myPeerId = id; isHost = true;
-                document.getElementById('setupScreen').classList.remove('active');
-                document.getElementById('roomScreen').classList.add('active');
-                document.getElementById('roomCodeDisplay').value = id;
-                setStatus('connecting', `Room "${id}" created — waiting for devices...`);
-                showToast(`✅ Room created! Identifier: ${id}`, 'success');
-                btn.disabled = false; btn.innerHTML = '✨ Create Room';
-                if (!appInitialized) {
-                    document.getElementById('startOverlay').classList.remove('hidden');
-                }
-            });
-
-            peer.on('connection', handleConnection);
-            peer.on('error', (err) => {
-                showToast(` Error: ${err.type}`, 'error');
-                btn.disabled = false; btn.innerHTML = '✨ Create Room';
-            });
+        } catch(err) { 
+            showToast('❌ Could not route audio: ' + err.message, 'error'); 
         }
+    }
 
-        function joinRoom() {
-            let identifier = document.getElementById('joinIdentifier').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g, '');
-            if (!identifier) { showToast('⚠️ Enter a valid Room ID', 'error'); return; }
-            
-            const btn = document.getElementById('joinRoomBtn');
-            btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Joining...';
+    // ==================== DRAG & DROP / PASTE ====================
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault(); dropZone.classList.remove('dragover');
+        addFilesToPlaylist(Array.from(e.dataTransfer.files));
+    });
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+        addFilesToPlaylist(Array.from(e.target.files));
+        e.target.value = '';
+    });
 
-            const uniqueId = `${identifier}-client-${generateId()}`;
-            peer = new Peer(uniqueId, { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
-
-            peer.on('open', (id) => {
-                myPeerId = id; isHost = false;
-                document.getElementById('setupScreen').classList.remove('active');
-                document.getElementById('roomScreen').classList.add('active');
-                document.getElementById('roomCodeDisplay').value = identifier + ' (Client)';
-                setStatus('connecting', 'Connecting to host...');
-                
-                const conn = peer.connect(identifier, { reliable: true, metadata: { name: 'Phone/Client' } });
-                handleConnection(conn);
-                
-                btn.disabled = false; btn.innerHTML = '🔗 Join';
-                if (!appInitialized) {
-                    document.getElementById('startOverlay').classList.remove('hidden');
-                }
-                showToast('✅ Auto-joined room successfully!', 'success');
-            });
-
-            peer.on('error', (err) => {
-                showToast(` Room not found or host offline`, 'error');
-                btn.disabled = false; btn.innerHTML = '🔗 Join';
-            });
-        }
-
-        function handleConnection(conn) {
-            const peerId = conn.peer;
-            conn.on('open', () => {
-                connections[peerId] = conn;
-                setStatus('connected', `${Object.keys(connections).length} device(s) connected`);
-                showToast('🎉 Device connected! Music will auto-sync.', 'success');
-                if (isHost) announceExistingTracks(conn);
-                updateGlobalStatus();
-            });
-
-            conn.on('data', async (data) => {
-                if (data.type === 'track-announce') {
-                    const db = await dbPromise;
-                    const tx = db.transaction('metadata', 'readonly');
-                    const req = tx.objectStore('metadata').get(data.track.id);
-                    req.onsuccess = () => {
-                        if (!req.result) {
-                            conn.send({ type: 'track-request', trackId: data.track.id, trackMeta: data.track });
-                            showToast(`📥 Auto-downloading: ${data.track.name}`, 'success');
-                        }
-                    };
-                } else if (data.type === 'track-request') {
-                    sendTrackChunks(data.trackId, conn);
-                } else if (data.type === 'track-chunk') {
-                    if (!receivingTracks[data.trackId]) {
-                        receivingTracks[data.trackId] = { chunks: {}, received: 0, total: data.totalSize, meta: data.trackMeta };
-                    }
-                    receivingTracks[data.trackId].chunks[data.offset] = data.buffer;
-                    receivingTracks[data.trackId].received += data.buffer.byteLength;
-                } else if (data.type === 'track-complete') {
-                    completeTrackReceive(data.trackId);
-                }
-            });
-
-            conn.on('close', () => {
-                delete connections[peerId];
-                setStatus('connected', `${Object.keys(connections).length} device(s) connected`);
-                updateGlobalStatus();
-            });
-        }
-
-        function announceExistingTracks(conn) {
-            getAllMetadata().then(tracks => {
-                tracks.forEach(track => conn.send({ type: 'track-announce', track }));
-            });
-        }
-
-        function announceTrackToPeers(trackMeta) {
-            const msg = { type: 'track-announce', track: trackMeta };
-            for (const peerId in connections) connections[peerId].send(msg);
-        }
-
-        async function sendTrackChunks(trackId, conn) {
-            const blob = await getBlob(trackId);
-            if (!blob) return;
-            const chunkSize = 16384;
-            let offset = 0;
-            
-            const sendNext = () => {
-                if (offset >= blob.size) {
-                    conn.send({ type: 'track-complete', trackId });
-                    return;
-                }
-                const chunk = blob.slice(offset, offset + chunkSize);
-                chunk.arrayBuffer().then(buffer => {
-                    conn.send({ type: 'track-chunk', trackId, offset, buffer, totalSize: blob.size });
-                    offset += chunkSize;
-                    sendNext();
-                });
-            };
-            sendNext();
-        }
-
-        async function completeTrackReceive(trackId) {
-            const rt = receivingTracks[trackId];
-            if (!rt) return;
-            
-            const sortedKeys = Object.keys(rt.chunks).sort((a, b) => parseInt(a) - parseInt(b));
-            const buffers = sortedKeys.map(key => rt.chunks[key]);
-            const blob = new Blob(buffers, { type: rt.meta.type || 'audio/mpeg' });
-            
-            await saveBlob(trackId, blob);
-            await saveMetadata(rt.meta);
-            showToast(`✅ Auto-downloaded & saved: ${rt.meta.name}`, 'success');
-            renderLibrary();
-            delete receivingTracks[trackId];
-        }
-
-        // ==================== UI HELPERS ====================
-        function copyRoomCode() {
-            const code = document.getElementById('roomCodeDisplay').value;
-            navigator.clipboard.writeText(code).then(() => showToast('📋 Room ID copied!', 'success'));
-        }
-
-        function showRoomQR() {
-            const code = document.getElementById('roomCodeDisplay').value;
-            if (!code) return;
-            const url = `${window.location.href.split('#')[0]}#join=${encodeURIComponent(code)}`;
-            document.getElementById('qrContainer').innerHTML = '';
-            new QRCode(document.getElementById('qrContainer'), { text: url, width: 180, height: 180 });
-            document.getElementById('qrModal').classList.add('show');
-        }
-
-        function closeQR() {
-            document.getElementById('qrModal').classList.remove('show');
-        }
-
-        function leaveRoom() {
-            Object.values(connections).forEach(conn => conn.close());
-            connections = {};
-            if (peer) { peer.destroy(); peer = null; }
-            Object.keys(players).forEach(id => removePlayer(id));
-            document.getElementById('roomScreen').classList.remove('active');
-            document.getElementById('setupScreen').classList.add('active');
-            setStatus('disconnected', 'Disconnected');
-            if (wakeLock) { wakeLock.release(); wakeLock = null; }
-            if (playbackRetryInterval) {
-                clearInterval(playbackRetryInterval);
-                playbackRetryInterval = null;
+    // PASTE SUPPORT
+    const pasteZone = document.getElementById('pasteZone');
+    pasteZone.addEventListener('click', () => {
+        pasteZone.focus();
+        showToast('📋 Now press Ctrl+V (or Cmd+V) to paste audio files', 'info');
+    });
+    document.addEventListener('paste', async (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        const files = [];
+        for (const item of items) {
+            if (item.kind === 'file') {
+                const file = item.getAsFile();
+                if (file) files.push(file);
             }
         }
+        if (files.length) {
+            await addFilesToPlaylist(files);
+            pasteZone.style.borderColor = 'var(--success)';
+            setTimeout(() => pasteZone.style.borderColor = '', 1500);
+        }
+    });
 
-        // Handle visibility change - keep playing when tab is hidden
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && appInitialized) {
-                // Tab became visible - ensure playback continues
-                Object.values(players).forEach(player => {
-                    if (player.playlist.length > 0 && !player.isPlaying) {
-                        player.play();
-                    }
-                });
+    // ==================== INITIALIZATION ====================
+    document.addEventListener('DOMContentLoaded', async () => {
+        await initDB();
+        const saved = await getAllTracks();
+        if (saved.length) {
+            playlist = saved;
+            renderPlaylist();
+            showToast(`📚 Loaded ${saved.length} saved tracks from permanent memory`, 'info');
+        }
+        
+        setupProgressSlider();
+        checkAutoJoin(); // Auto-connect if QR scanned
+        
+        // Attempt to get device permissions silently for BT detection
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(() => {
+            refreshBluetooth();
+        }).catch(() => {
+            // User denied, will prompt later when they click refresh
+        });
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+        else if (e.code === 'ArrowRight') nextTrack();
+        else if (e.code === 'ArrowLeft') prevTrack();
+        else if (e.key === 'Escape') { closeQR(); stopQRScanner(); }
+    });
+
+    // Modal close on outside click
+    ['qrModal', 'scannerModal'].forEach(id => {
+        document.getElementById(id)?.addEventListener('click', (e) => {
+            if (e.target.id === id) {
+                if (id === 'qrModal') closeQR();
+                else stopQRScanner();
             }
         });
-
-        // Init & Auto-Join
-        document.addEventListener('DOMContentLoaded', () => {
-            const hash = window.location.hash;
-            if (hash.startsWith('#join=')) {
-                const roomId = decodeURIComponent(hash.substring(6));
-                document.getElementById('joinIdentifier').value = roomId;
-                history.replaceState(null, null, window.location.pathname);
-                showToast('🎯 Auto-joining room from QR scan...', 'success');
-                setTimeout(() => joinRoom(), 500);
-            }
-        });
-
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            if (wakeLock) wakeLock.release();
-            if (playbackRetryInterval) clearInterval(playbackRetryInterval);
-        });
+    });
     </script>
 </body>
 </html>
