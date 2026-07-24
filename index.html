@@ -46,8 +46,10 @@
         .status-bar.disconnected { background: rgba(255, 107, 107, 0.1); border-color: rgba(255, 107, 107, 0.3); color: #ff8a8a; }
         .status-bar.connecting { background: rgba(0, 200, 83, 0.1); border-color: rgba(0, 200, 83, 0.3); color: var(--highlight); }
         .status-bar.connected { background: rgba(0, 230, 118, 0.1); border-color: rgba(0, 230, 118, 0.3); color: var(--success); }
+        .status-bar.playing { background: rgba(0, 200, 83, 0.2); border-color: var(--highlight); color: var(--success); box-shadow: 0 0 20px var(--glow); }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
         .status-bar.connecting .status-dot { animation: pulse 1s infinite; }
+        .status-bar.playing .status-dot { animation: pulse 1.5s infinite; box-shadow: 0 0 10px var(--highlight); }
 
         .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
         .main-grid { display: grid; grid-template-columns: 280px 1fr 300px; gap: 16px; }
@@ -68,6 +70,7 @@
         .btn-outline:hover:not(:disabled) { background: rgba(0, 200, 83, 0.1); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-sm { padding: 8px 12px; font-size: 12px; width: auto; }
+        .btn-large { padding: 16px 32px; font-size: 18px; }
 
         .input-group { margin-bottom: 14px; }
         .input-group label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; }
@@ -97,7 +100,7 @@
             background: var(--bg-input); padding: 10px; border-radius: 8px; margin-bottom: 12px;
             font-size: 13px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary);
         }
-        .track-info.active { color: var(--highlight); font-weight: 700; border: 1px solid var(--highlight); box-shadow: 0 0 10px var(--glow); }
+        .track-info.active { color: var(--highlight); font-weight: 700; border: 1px solid var(--highlight); box-shadow: 0 0 10px var(--glow); animation: pulse 2s infinite; }
         
         .player-controls { display: flex; justify-content: center; gap: 16px; margin-bottom: 16px; }
         .player-controls button {
@@ -106,7 +109,8 @@
             transition: all 0.2s; display: flex; align-items: center; justify-content: center;
         }
         .player-controls button:hover { background: var(--highlight); color: white; border-color: var(--highlight); }
-        .player-controls button.play-btn { width: 48px; height: 48px; font-size: 22px; background: var(--highlight); color: white; border: none; }
+        .player-controls button.play-btn { width: 56px; height: 56px; font-size: 24px; background: var(--highlight); color: white; border: none; box-shadow: 0 4px 15px var(--glow); }
+        .player-controls button.play-btn:hover { transform: scale(1.1); box-shadow: 0 6px 20px var(--glow); }
 
         .seek-control { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 11px; color: var(--text-secondary); font-family: monospace; }
         .seek-control input[type="range"] { flex: 1; accent-color: var(--highlight); cursor: pointer; height: 6px; }
@@ -149,6 +153,53 @@
         .file-btn.download { background: var(--highlight); color: white; }
         .file-btn.remove { background: rgba(255, 107, 107, 0.15); color: #ff8a8a; }
 
+        /* START OVERLAY - Critical for autoplay */
+        .start-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.95); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+        .start-overlay.hidden { display: none; }
+        .start-overlay h2 {
+            font-size: 2rem; margin-bottom: 16px; color: var(--highlight);
+            text-align: center;
+        }
+        .start-overlay p {
+            color: var(--text-secondary); margin-bottom: 32px; text-align: center; max-width: 400px; line-height: 1.6;
+        }
+        .start-overlay .pulse-ring {
+            width: 120px; height: 120px; border-radius: 50%;
+            background: var(--highlight);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 32px;
+            animation: pulseRing 2s infinite;
+            box-shadow: 0 0 40px var(--glow);
+        }
+        @keyframes pulseRing {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 200, 83, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 30px rgba(0, 200, 83, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 200, 83, 0); }
+        }
+        .start-overlay .pulse-ring span { font-size: 48px; }
+
+        .permission-banner {
+            background: linear-gradient(135deg, var(--warning), #ff9800);
+            color: #000; padding: 12px 20px; border-radius: 12px;
+            margin-bottom: 16px; display: none; align-items: center; gap: 12px;
+            font-weight: 600; animation: slideDown 0.3s ease;
+        }
+        .permission-banner.show { display: flex; }
+        .permission-banner button {
+            background: #000; color: white; border: none;
+            padding: 8px 16px; border-radius: 8px; cursor: pointer;
+            font-weight: 600; margin-left: auto;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); z-index: 2000;
             display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px); padding: 20px;
@@ -169,6 +220,7 @@
         @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(40px); } }
         .toast.success { border-left: 4px solid var(--success); }
         .toast.error { border-left: 4px solid #ff6b6b; }
+        .toast.warning { border-left: 4px solid var(--warning); }
 
         .section { display: none; animation: fadeIn 0.4s ease; }
         .section.active { display: block; }
@@ -180,6 +232,24 @@
     </style>
 </head>
 <body>
+    <!-- START OVERLAY - Required for autoplay permissions -->
+    <div class="start-overlay" id="startOverlay">
+        <div class="pulse-ring"><span>🎵</span></div>
+        <h2>Ready to Play Music?</h2>
+        <p>Tap anywhere to enable audio playback and keep music playing continuously. This unlocks all features including auto-sync and Bluetooth routing.</p>
+        <button class="btn btn-primary btn-large" onclick="initializeApp()">
+            🎧 START MUSIC EXPERIENCE
+        </button>
+        <p style="margin-top: 24px; font-size: 12px;">Click to allow audio permissions ✓</p>
+    </div>
+
+    <!-- PERMISSION BANNER -->
+    <div class="permission-banner" id="permissionBanner">
+        <span>⚠️</span>
+        <span>Audio permissions needed for continuous playback</span>
+        <button onclick="requestAllPermissions()">Allow Now</button>
+    </div>
+
     <div class="container">
         <header>
             <span class="logo">🎵</span>
@@ -203,7 +273,7 @@
                     </div>
                 </div>
                 <p style="font-size: 12px; color: var(--text-secondary); margin-top: 16px; text-align: center; line-height: 1.5;">
-                    💡 <strong>Auto-Connect:</strong> Scan the QR code with your phone camera to auto-join instantly.
+                     <strong>Auto-Connect:</strong> Scan the QR code with your phone camera to auto-join instantly.
                 </p>
             </div>
         </div>
@@ -212,7 +282,7 @@
         <div id="roomScreen" class="section">
             <div id="statusBar" class="status-bar disconnected">
                 <div class="status-dot"></div>
-                <span id="statusText">Disconnected</span>
+                <span id="statusText">Tap to Start Music</span>
             </div>
 
             <div class="main-grid">
@@ -225,19 +295,19 @@
                             <button class="btn btn-outline btn-sm" onclick="copyRoomCode()" style="width: auto;">📋</button>
                             <button class="btn btn-outline btn-sm" onclick="showRoomQR()" style="width: auto;">📱</button>
                         </div>
-                        <button class="btn btn-danger btn-sm" onclick="leaveRoom()">🚪 Leave Room</button>
+                        <button class="btn btn-danger btn-sm" onclick="leaveRoom()"> Leave Room</button>
                     </div>
 
                     <div class="card">
                         <div class="card-title"><span>🎧</span> Audio & Bluetooth</div>
-                        <button class="btn btn-primary btn-sm" onclick="requestDevicePermissions()" style="margin-bottom: 8px;">
-                            🔓 Enable Device Labels
+                        <button class="btn btn-primary btn-sm" onclick="requestAllPermissions()" style="margin-bottom: 8px;">
+                            🔓 Enable All Audio Permissions
                         </button>
                         <button class="btn btn-outline btn-sm" onclick="connectBluetooth()" style="margin-bottom: 8px;">
                             📶 Pair Bluetooth Device
                         </button>
                         <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
-                            Tap "Enable Device Labels" first. The app will auto-route to your active Bluetooth earbuds when you press Play.
+                            Tap "Enable All Audio Permissions" to allow continuous playback. The app will auto-route to your Bluetooth earbuds.
                         </p>
                     </div>
                 </div>
@@ -287,7 +357,7 @@
         </div>
 
         <footer>
-            <p>🔒 True P2P sync. IndexedDB caches tracks for instant, always-on playback.</p>
+            <p> True P2P sync. IndexedDB caches tracks for instant, always-on playback.</p>
             <p style="margin-top: 5px;">PossibilityData © 2026</p>
         </footer>
     </div>
@@ -305,6 +375,12 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
+        // ==================== GLOBAL STATE ====================
+        let appInitialized = false;
+        let audioContext = null;
+        let wakeLock = null;
+        let playbackRetryInterval = null;
+        
         // ==================== INDEXED DB SETUP ====================
         const dbPromise = new Promise((resolve, reject) => {
             const request = indexedDB.open('PossibilityMusicDB', 1);
@@ -354,7 +430,7 @@
             tx = db.transaction('blobs', 'readwrite');
             tx.objectStore('blobs').delete(id);
             renderLibrary();
-            showToast('🗑️ Track removed from library');
+            showToast('️ Track removed from library');
         }
 
         // ==================== STATE & UTILS ====================
@@ -362,7 +438,6 @@
         const players = {};
         let playerCounter = 0;
         const receivingTracks = {};
-        let wakeLock = null;
 
         function generateId(length = 6) {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -391,7 +466,7 @@
             toast.className = `toast ${type}`;
             toast.textContent = message;
             container.appendChild(toast);
-            setTimeout(() => toast.remove(), 3500);
+            setTimeout(() => toast.remove(), 4000);
         }
 
         function setStatus(type, text) {
@@ -400,13 +475,104 @@
             document.getElementById('statusText').textContent = text;
         }
 
+        // ==================== CRITICAL: APP INITIALIZATION ====================
+        async function initializeApp() {
+            if (appInitialized) return;
+            
+            try {
+                // Create audio context on user gesture (required for autoplay)
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                await audioContext.resume();
+                
+                // Request wake lock
+                await requestWakeLock();
+                
+                // Request all permissions
+                await requestAllPermissions();
+                
+                // Hide overlay
+                document.getElementById('startOverlay').classList.add('hidden');
+                appInitialized = true;
+                
+                showToast('✅ Audio enabled! Music will play continuously.', 'success');
+                
+                // Start playback retry mechanism
+                startPlaybackRetry();
+                
+                // Auto-add first player if none exists
+                if (Object.keys(players).length === 0) {
+                    addPlayer();
+                }
+                
+            } catch (error) {
+                console.error('Init error:', error);
+                showToast('⚠️ Please allow audio permissions in your browser', 'warning');
+                document.getElementById('permissionBanner').classList.add('show');
+            }
+        }
+
+        async function requestAllPermissions() {
+            try {
+                // Request microphone permission (triggers browser permission prompt)
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    stream.getTracks().forEach(track => track.stop()); // Don't actually use mic
+                    showToast('✅ Audio permissions granted!', 'success');
+                    document.getElementById('permissionBanner').classList.remove('show');
+                }
+                
+                // Resume audio context
+                if (audioContext && audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+                
+                // Request wake lock
+                await requestWakeLock();
+                
+            } catch (error) {
+                console.error('Permission error:', error);
+                showToast('⚠️ Please allow permissions in browser settings', 'warning');
+            }
+        }
+
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    showToast('🔒 Screen wake lock active (keeps music playing)');
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Wake lock released');
+                        // Auto-reacquire wake lock
+                        setTimeout(() => requestWakeLock(), 1000);
+                    });
+                    console.log('Wake lock active');
                 }
-            } catch (err) { console.warn('Wake lock failed:', err); }
+            } catch (err) {
+                console.warn('Wake lock failed:', err);
+            }
+        }
+
+        function startPlaybackRetry() {
+            // Retry playback every 2 seconds if not playing
+            playbackRetryInterval = setInterval(() => {
+                if (!appInitialized) return;
+                
+                // Try to resume audio context
+                if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                
+                // Try to play on all players
+                Object.values(players).forEach(player => {
+                    if (!player.isPlaying && player.playlist.length > 0) {
+                        player.play().catch(() => {});
+                    }
+                });
+                
+                // Re-request wake lock
+                if (!wakeLock || wakeLock.released) {
+                    requestWakeLock();
+                }
+            }, 2000);
         }
 
         // ==================== MUSIC PLAYER CLASS ====================
@@ -415,11 +581,14 @@
                 this.id = id;
                 this.audio = new Audio();
                 this.audio.crossOrigin = "anonymous";
+                this.audio.loop = false;
                 this.playlist = [];
                 this.currentIndex = -1;
                 this.isPlaying = false;
+                this.playAttemptCount = 0;
                 
-                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                // Create audio context for this player
+                this.audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
                 this.source = this.audioContext.createMediaElementSource(this.audio);
                 this.panner = this.audioContext.createStereoPanner();
                 this.source.connect(this.panner);
@@ -427,6 +596,19 @@
                 
                 this.audio.addEventListener('ended', () => this.playNext());
                 this.audio.addEventListener('timeupdate', () => this.updateSeekUI());
+                this.audio.addEventListener('error', (e) => this.handlePlaybackError(e));
+                this.audio.addEventListener('playing', () => {
+                    this.isPlaying = true;
+                    this.playAttemptCount = 0;
+                    this.updateUI();
+                    updateGlobalStatus();
+                });
+                this.audio.addEventListener('pause', () => {
+                    this.isPlaying = false;
+                    this.updateUI();
+                    updateGlobalStatus();
+                });
+                
                 this.render();
             }
 
@@ -443,8 +625,10 @@
                 if (deviceId && this.audio.setSinkId) {
                     try {
                         await this.audio.setSinkId(deviceId);
-                        showToast(`✅ Routed to selected device`);
-                    } catch (e) { showToast('⚠️ Cannot route (tap Play first or check HTTPS)', 'error'); }
+                        showToast(`✅ Routed to selected device`, 'success');
+                    } catch (e) { 
+                        showToast('️ Cannot route (tap Play first)', 'warning'); 
+                    }
                 }
             }
 
@@ -453,15 +637,21 @@
                 try {
                     const devices = await navigator.mediaDevices.enumerateDevices();
                     const btDevice = devices.find(d => d.kind === 'audiooutput' && 
-                        (d.label.toLowerCase().includes('bluetooth') || d.label.toLowerCase().includes('headphone') || d.label.toLowerCase().includes('earbud') || d.label.toLowerCase().includes('airpods')));
+                        (d.label.toLowerCase().includes('bluetooth') || 
+                         d.label.toLowerCase().includes('headphone') || 
+                         d.label.toLowerCase().includes('earbud') || 
+                         d.label.toLowerCase().includes('airpods') ||
+                         d.label.toLowerCase().includes('speaker')));
                     
                     if (btDevice) {
                         await this.audio.setSinkId(btDevice.deviceId);
                         const select = document.getElementById(`device-select-${this.id}`);
                         if (select) select.value = btDevice.deviceId;
-                        showToast(`🎧 Auto-routed to ${btDevice.label}`);
+                        showToast(` Auto-routed to ${btDevice.label}`, 'success');
+                        return true;
                     }
                 } catch (e) { console.warn('Auto BT route failed:', e); }
+                return false;
             }
 
             async loadTrack(track) {
@@ -480,32 +670,74 @@
             }
 
             async play() {
+                if (!appInitialized) {
+                    showToast('⚠️ Tap the screen to enable audio first', 'warning');
+                    document.getElementById('startOverlay').classList.remove('hidden');
+                    return false;
+                }
+
                 if (!this.currentTrack) {
                     if (this.playlist.length > 0) {
                         this.currentIndex = 0;
                         await this.loadTrack(this.playlist[0]);
                     } else {
-                        showToast('⚠️ Add music to the playlist first', 'error');
-                        return;
+                        showToast('⚠️ Add music to the playlist first', 'warning');
+                        return false;
                     }
                 }
-                await this.audioContext.resume();
-                await requestWakeLock();
-                await this.autoRouteToBluetooth(); // Auto-route on first play interaction
-                
+
+                // Ensure audio context is running
+                if (this.audioContext.state === 'suspended') {
+                    await this.audioContext.resume();
+                }
+
+                // Try to route to Bluetooth
+                await this.autoRouteToBluetooth();
+
+                // Attempt playback with retry
                 try {
                     await this.audio.play();
                     this.isPlaying = true;
+                    this.playAttemptCount = 0;
                     this.updateUI();
+                    updateGlobalStatus();
+                    showToast('🎵 Now Playing', 'success');
+                    return true;
                 } catch (e) {
-                    showToast('⚠️ Playback blocked. Tap the screen and try again.', 'error');
+                    this.playAttemptCount++;
+                    console.error('Playback error:', e);
+                    
+                    if (e.name === 'NotAllowedError' || e.message.includes('play() failed')) {
+                        if (this.playAttemptCount < 3) {
+                            // Retry after short delay
+                            setTimeout(() => this.play(), 500);
+                        } else {
+                            showToast('⚠️ Tap anywhere to allow playback', 'warning');
+                            document.getElementById('permissionBanner').classList.add('show');
+                        }
+                    }
+                    return false;
                 }
+            }
+
+            handlePlaybackError(e) {
+                console.error('Audio error:', e);
+                this.isPlaying = false;
+                this.updateUI();
+                
+                // Auto-retry after error
+                setTimeout(() => {
+                    if (this.playlist.length > 0) {
+                        this.play();
+                    }
+                }, 2000);
             }
 
             pause() {
                 this.audio.pause();
                 this.isPlaying = false;
                 this.updateUI();
+                updateGlobalStatus();
             }
 
             togglePlay() {
@@ -517,16 +749,13 @@
                 if (this.currentIndex < this.playlist.length - 1) {
                     this.currentIndex++;
                     await this.loadTrack(this.playlist[this.currentIndex]);
-                    this.play();
+                    await this.play();
                 } else {
                     // Loop back to start for "always playing" quality
                     if (this.playlist.length > 0) {
                         this.currentIndex = 0;
                         await this.loadTrack(this.playlist[0]);
-                        this.play();
-                    } else {
-                        this.isPlaying = false;
-                        this.updateUI();
+                        await this.play();
                     }
                 }
             }
@@ -658,10 +887,21 @@
                     item.onclick = async () => {
                         this.currentIndex = idx;
                         await this.loadTrack(track);
-                        this.play();
+                        await this.play();
                     };
                     list.appendChild(item);
                 });
+            }
+        }
+
+        function updateGlobalStatus() {
+            const anyPlaying = Object.values(players).some(p => p.isPlaying);
+            const connectedCount = Object.keys(connections).length;
+            
+            if (anyPlaying) {
+                setStatus('playing', `🎵 Playing • ${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
+            } else if (connectedCount > 0) {
+                setStatus('connected', `${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
             }
         }
 
@@ -699,25 +939,21 @@
             } catch(e) { console.error(e); }
         }
 
-        async function requestDevicePermissions() {
-            try {
-                await navigator.mediaDevices.getUserMedia({ audio: true });
-                showToast('✅ Permissions granted. Device labels (including Bluetooth) will now appear.');
-                renderAudioDevices();
-            } catch(e) { showToast('⚠️ Permission denied', 'error'); }
-        }
-
         async function connectBluetooth() {
             if (!navigator.bluetooth) {
-                showToast('⚠️ Web Bluetooth not supported in this browser. Use the Output Device dropdown instead.', 'error');
+                showToast('️ Web Bluetooth not supported. Use Output Device dropdown.', 'warning');
                 return;
             }
             try {
                 showToast('🔍 Searching for Bluetooth devices...');
                 const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['battery_service'] });
-                showToast(`✅ Paired with "${device.name}". Select it in the Output Device dropdown.`);
+                showToast(`✅ Paired with "${device.name}". Select in Output Device dropdown.`, 'success');
                 setTimeout(renderAudioDevices, 1500);
-            } catch (err) { showToast('⚠️ Bluetooth pairing cancelled', 'error'); }
+            } catch (err) { 
+                if (err.name !== 'NotFoundError') {
+                    showToast('⚠️ Bluetooth pairing cancelled', 'warning'); 
+                }
+            }
         }
 
         // ==================== LIBRARY & INGEST ====================
@@ -731,6 +967,7 @@
             if (isHost && Object.keys(connections).length > 0) {
                 announceTrackToPeers(trackMeta);
             }
+            showToast(`✅ Added: ${file.name}`, 'success');
         }
 
         function addStreamUrl() {
@@ -741,7 +978,7 @@
             saveMetadata(track);
             renderLibrary();
             document.getElementById('streamUrl').value = '';
-            showToast('✅ Stream URL added to library!');
+            showToast('✅ Stream URL added to library!', 'success');
         }
 
         async function renderLibrary() {
@@ -792,7 +1029,7 @@
         function addLibraryToPlayer(playerId) {
             getAllMetadata().then(tracks => {
                 tracks.forEach(track => players[playerId].addToPlaylist(track));
-                showToast(`✅ Added ${tracks.length} tracks to Player ${playerId} queue`);
+                showToast(`✅ Added ${tracks.length} tracks to Player ${playerId}`, 'success');
             });
         }
 
@@ -825,15 +1062,15 @@
                 f.type.startsWith('audio/') || /\.(mp3|wav|ogg|flac|m4a|aac)$/i.test(f.name)
             );
             if (files.length === 0) {
-                showToast('⚠️ No audio files found in selected folder', 'error');
+                showToast('⚠️ No audio files found in selected folder', 'warning');
                 return;
             }
-            showToast(`🔍 Processing ${files.length} local audio files...`);
+            showToast(` Processing ${files.length} local audio files...`);
             for (const file of files) {
                 await processNewAudioFile(file);
             }
-            showToast(`✅ Added ${files.length} tracks to library!`);
-            localScanInput.value = ''; // reset
+            showToast(`✅ Added ${files.length} tracks to library!`, 'success');
+            localScanInput.value = '';
         });
 
         // Global paste listener
@@ -847,7 +1084,7 @@
                     fileAdded = true;
                 }
             }
-            if (fileAdded) showToast('✅ Audio pasted from clipboard!');
+            if (fileAdded) showToast('✅ Audio pasted from clipboard!', 'success');
         });
 
         // ==================== P2P SYNC LOGIC ====================
@@ -866,15 +1103,16 @@
                 document.getElementById('roomScreen').classList.add('active');
                 document.getElementById('roomCodeDisplay').value = id;
                 setStatus('connecting', `Room "${id}" created — waiting for devices...`);
-                showToast(`✅ Room created! Identifier: ${id}`);
+                showToast(`✅ Room created! Identifier: ${id}`, 'success');
                 btn.disabled = false; btn.innerHTML = '✨ Create Room';
-                addPlayer();
-                renderLibrary();
+                if (!appInitialized) {
+                    document.getElementById('startOverlay').classList.remove('hidden');
+                }
             });
 
             peer.on('connection', handleConnection);
             peer.on('error', (err) => {
-                showToast(`❌ Error: ${err.type}`, 'error');
+                showToast(` Error: ${err.type}`, 'error');
                 btn.disabled = false; btn.innerHTML = '✨ Create Room';
             });
         }
@@ -900,13 +1138,14 @@
                 handleConnection(conn);
                 
                 btn.disabled = false; btn.innerHTML = '🔗 Join';
-                addPlayer();
-                renderLibrary();
-                showToast('✅ Auto-joined room successfully!');
+                if (!appInitialized) {
+                    document.getElementById('startOverlay').classList.remove('hidden');
+                }
+                showToast('✅ Auto-joined room successfully!', 'success');
             });
 
             peer.on('error', (err) => {
-                showToast(`❌ Room not found or host offline`, 'error');
+                showToast(` Room not found or host offline`, 'error');
                 btn.disabled = false; btn.innerHTML = '🔗 Join';
             });
         }
@@ -916,8 +1155,9 @@
             conn.on('open', () => {
                 connections[peerId] = conn;
                 setStatus('connected', `${Object.keys(connections).length} device(s) connected`);
-                showToast('🎉 Device connected! Music will auto-sync.');
+                showToast('🎉 Device connected! Music will auto-sync.', 'success');
                 if (isHost) announceExistingTracks(conn);
+                updateGlobalStatus();
             });
 
             conn.on('data', async (data) => {
@@ -928,7 +1168,7 @@
                     req.onsuccess = () => {
                         if (!req.result) {
                             conn.send({ type: 'track-request', trackId: data.track.id, trackMeta: data.track });
-                            showToast(`📥 Auto-downloading: ${data.track.name}`);
+                            showToast(`📥 Auto-downloading: ${data.track.name}`, 'success');
                         }
                     };
                 } else if (data.type === 'track-request') {
@@ -947,6 +1187,7 @@
             conn.on('close', () => {
                 delete connections[peerId];
                 setStatus('connected', `${Object.keys(connections).length} device(s) connected`);
+                updateGlobalStatus();
             });
         }
 
@@ -992,7 +1233,7 @@
             
             await saveBlob(trackId, blob);
             await saveMetadata(rt.meta);
-            showToast(`✅ Auto-downloaded & saved: ${rt.meta.name}`);
+            showToast(`✅ Auto-downloaded & saved: ${rt.meta.name}`, 'success');
             renderLibrary();
             delete receivingTracks[trackId];
         }
@@ -1000,7 +1241,7 @@
         // ==================== UI HELPERS ====================
         function copyRoomCode() {
             const code = document.getElementById('roomCodeDisplay').value;
-            navigator.clipboard.writeText(code).then(() => showToast('📋 Room ID copied!'));
+            navigator.clipboard.writeText(code).then(() => showToast('📋 Room ID copied!', 'success'));
         }
 
         function showRoomQR() {
@@ -1025,7 +1266,23 @@
             document.getElementById('setupScreen').classList.add('active');
             setStatus('disconnected', 'Disconnected');
             if (wakeLock) { wakeLock.release(); wakeLock = null; }
+            if (playbackRetryInterval) {
+                clearInterval(playbackRetryInterval);
+                playbackRetryInterval = null;
+            }
         }
+
+        // Handle visibility change - keep playing when tab is hidden
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && appInitialized) {
+                // Tab became visible - ensure playback continues
+                Object.values(players).forEach(player => {
+                    if (player.playlist.length > 0 && !player.isPlaying) {
+                        player.play();
+                    }
+                });
+            }
+        });
 
         // Init & Auto-Join
         document.addEventListener('DOMContentLoaded', () => {
@@ -1034,14 +1291,15 @@
                 const roomId = decodeURIComponent(hash.substring(6));
                 document.getElementById('joinIdentifier').value = roomId;
                 history.replaceState(null, null, window.location.pathname);
-                showToast('🎯 Auto-joining room from QR scan...');
+                showToast('🎯 Auto-joining room from QR scan...', 'success');
                 setTimeout(() => joinRoom(), 500);
             }
-            
-            // Request wake lock on any initial interaction to keep music playing
-            document.body.addEventListener('click', () => {
-                if (!wakeLock) requestWakeLock();
-            }, { once: true });
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (wakeLock) wakeLock.release();
+            if (playbackRetryInterval) clearInterval(playbackRetryInterval);
         });
     </script>
 </body>
