@@ -94,7 +94,10 @@
         .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
         .highlight { color: var(--highlight); font-weight: 700; }
 
-        .player-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+        .player-card { 
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); 
+            padding: 16px; margin-bottom: 16px; transition: all 0.3s;
+        }
         .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 700; color: var(--highlight); font-size: 14px; }
         .track-info {
             background: var(--bg-input); padding: 10px; border-radius: 8px; margin-bottom: 12px;
@@ -102,7 +105,7 @@
         }
         .track-info.active { color: var(--highlight); font-weight: 700; border: 1px solid var(--highlight); box-shadow: 0 0 10px var(--glow); animation: pulse 2s infinite; }
         
-        .player-controls { display: flex; justify-content: center; gap: 16px; margin-bottom: 16px; }
+        .player-controls { display: flex; justify-content: center; gap: 12px; margin-bottom: 16px; }
         .player-controls button {
             background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary);
             width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px;
@@ -111,6 +114,8 @@
         .player-controls button:hover { background: var(--highlight); color: white; border-color: var(--highlight); }
         .player-controls button.play-btn { width: 56px; height: 56px; font-size: 24px; background: var(--highlight); color: white; border: none; box-shadow: 0 4px 15px var(--glow); }
         .player-controls button.play-btn:hover { transform: scale(1.1); box-shadow: 0 6px 20px var(--glow); }
+        .player-controls button.repeat-btn { width: 36px; height: 36px; font-size: 16px; color: var(--text-secondary); }
+        .player-controls button.repeat-btn.active { color: var(--highlight); border-color: var(--highlight); background: rgba(0, 200, 83, 0.1); }
 
         .seek-control { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 11px; color: var(--text-secondary); font-family: monospace; }
         .seek-control input[type="range"] { flex: 1; accent-color: var(--highlight); cursor: pointer; height: 6px; }
@@ -141,7 +146,10 @@
         .file-item {
             display: flex; align-items: center; gap: 10px; padding: 10px;
             background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px;
+            cursor: grab; transition: all 0.2s;
         }
+        .file-item:active { cursor: grabbing; }
+        .file-item:hover { border-color: var(--highlight); background: rgba(0, 200, 83, 0.05); }
         .file-icon { font-size: 22px; flex-shrink: 0; width: 28px; text-align: center; }
         .file-info { flex: 1; min-width: 0; }
         .file-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -153,22 +161,22 @@
         .file-btn.download { background: var(--highlight); color: white; }
         .file-btn.remove { background: rgba(255, 107, 107, 0.15); color: #ff8a8a; }
 
-        /* PERMISSION WIZARD */
-        .permission-wizard {
+        /* PERMISSION WIZARD & AUTH */
+        .permission-wizard, .auth-screen {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0, 0, 0, 0.95); z-index: 9999;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             backdrop-filter: blur(10px); padding: 20px;
         }
-        .permission-wizard.hidden { display: none; }
-        .wizard-container {
+        .permission-wizard.hidden, .auth-screen.hidden { display: none; }
+        .wizard-container, .auth-container {
             background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
             padding: 32px; max-width: 500px; width: 100%; text-align: center;
         }
         .wizard-step { display: none; animation: fadeIn 0.3s ease; }
         .wizard-step.active { display: block; }
-        .wizard-step h2 { font-size: 1.5rem; margin-bottom: 16px; color: var(--highlight); }
-        .wizard-step p { color: var(--text-secondary); margin-bottom: 24px; line-height: 1.6; }
+        .wizard-step h2, .auth-container h2 { font-size: 1.5rem; margin-bottom: 16px; color: var(--highlight); }
+        .wizard-step p, .auth-container p { color: var(--text-secondary); margin-bottom: 24px; line-height: 1.6; }
         .wizard-icon { font-size: 48px; margin-bottom: 16px; display: block; }
         .wizard-progress { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
         .wizard-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
@@ -208,8 +216,30 @@
     </style>
 </head>
 <body>
+    <!-- AUTH SCREEN -->
+    <div class="auth-screen" id="authScreen">
+        <div class="auth-container">
+            <span class="logo" style="font-size: 3rem;">🎵</span>
+            <h2>PossibilityData</h2>
+            <p>Social Music Player & P2P Auto-Sync</p>
+            
+            <div class="input-group">
+                <input type="text" id="authUsername" class="input-field" placeholder="Username">
+            </div>
+            <div class="input-group">
+                <input type="password" id="authPassword" class="input-field" placeholder="Password">
+            </div>
+            
+            <button class="btn btn-primary" onclick="handleAuth('login')">Login</button>
+            <button class="btn btn-outline" onclick="handleAuth('signup')" style="margin-top: 8px;">Sign Up</button>
+            <button class="btn btn-success" onclick="handleAuth('preview')" style="margin-top: 8px;">👁️ Preview (Direct Access)</button>
+            
+            <p id="authMessage" style="margin-top: 12px; font-size: 13px; color: var(--warning); min-height: 20px;"></p>
+        </div>
+    </div>
+
     <!-- PERMISSION WIZARD -->
-    <div class="permission-wizard" id="permissionWizard">
+    <div class="permission-wizard hidden" id="permissionWizard">
         <div class="wizard-container">
             <div class="wizard-progress">
                 <div class="wizard-dot active" id="dot1"></div>
@@ -218,7 +248,6 @@
                 <div class="wizard-dot" id="dot4"></div>
             </div>
 
-            <!-- Step 1: Welcome -->
             <div class="wizard-step active" id="step1">
                 <span class="wizard-icon">🎵</span>
                 <h2>Welcome to PossibilityData</h2>
@@ -226,15 +255,13 @@
                 <button class="btn btn-primary btn-large" onclick="nextWizardStep()">Get Started</button>
             </div>
 
-            <!-- Step 2: Audio Context -->
             <div class="wizard-step" id="step2">
-                <span class="wizard-icon"></span>
+                <span class="wizard-icon">🔊</span>
                 <h2>Enable Audio Playback</h2>
                 <p>We need to initialize the audio system. Click the button below to allow audio playback.</p>
                 <button class="btn btn-primary btn-large" onclick="enableAudio()">Enable Audio</button>
             </div>
 
-            <!-- Step 3: Device Labels -->
             <div class="wizard-step" id="step3">
                 <span class="wizard-icon">🎧</span>
                 <h2>Enable Device Detection</h2>
@@ -242,7 +269,6 @@
                 <button class="btn btn-primary btn-large" onclick="enableDeviceLabels()">Allow Device Access</button>
             </div>
 
-            <!-- Step 4: Bluetooth (Optional) -->
             <div class="wizard-step" id="step4">
                 <span class="wizard-icon">📶</span>
                 <h2>Connect Bluetooth (Optional)</h2>
@@ -253,7 +279,6 @@
                 </div>
             </div>
 
-            <!-- Step 5: Complete -->
             <div class="wizard-step" id="step5">
                 <span class="wizard-icon">✅</span>
                 <h2>All Set!</h2>
@@ -268,10 +293,12 @@
             <span class="logo">🎵</span>
             <h1>PossibilityData</h1>
             <p>Always-On Live Streaming Music Player & P2P Auto-Sync</p>
+            <div id="userBadge" class="badge" style="margin-top: 8px; display: none;"></div>
+            <button class="btn btn-sm btn-outline" onclick="logout()" id="logoutBtn" style="margin-top: 8px; width: auto; display: none;">Logout</button>
         </header>
 
         <!-- SETUP SCREEN -->
-        <div id="setupScreen" class="section active">
+        <div id="setupScreen" class="section">
             <div class="card" style="max-width: 450px; margin: 0 auto;">
                 <div class="card-title"><span>🚀</span> Create or Join Music Room</div>
                 <div class="input-group">
@@ -342,16 +369,16 @@
                     <div class="card">
                         <div class="card-title"><span>📥</span> Add Music</div>
                         <div class="drop-zone" id="globalDropZone" tabindex="0">
-                            <input type="file" id="fileInput" multiple accept="audio/*">
+                            <input type="file" id="fileInput" multiple accept="audio/*,video/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.wma,.opus,.webm,.3gp,.amr,.mid,.midi">
                             <div class="drop-icon">🎵</div>
-                            <div class="drop-text">Drop MP3s or <span class="highlight">Ctrl+V</span> to paste</div>
-                            <div class="drop-subtext">Auto-syncs to connected devices</div>
+                            <div class="drop-text">Drop ANY Audio or <span class="highlight">Ctrl+V</span> to paste</div>
+                            <div class="drop-subtext">Auto-syncs & downloads to connected devices</div>
                         </div>
                         
                         <button class="btn btn-outline btn-sm" onclick="document.getElementById('localScanInput').click()" style="margin-top: 12px;">
                             📂 Scan Local Device for Music
                         </button>
-                        <input type="file" id="localScanInput" webkitdirectory directory multiple accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a" style="display:none">
+                        <input type="file" id="localScanInput" webkitdirectory directory multiple accept="audio/*,video/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.wma,.opus,.webm,.3gp,.amr,.mid,.midi" style="display:none">
 
                         <div class="input-group" style="margin-top: 14px; margin-bottom: 0;">
                             <label>Stream from URL</label>
@@ -373,7 +400,7 @@
         </div>
 
         <footer>
-            <p> True P2P sync. IndexedDB caches tracks for instant, always-on playback.</p>
+            <p>True P2P sync. IndexedDB caches tracks for instant, always-on playback.</p>
             <p style="margin-top: 5px;">PossibilityData © 2026</p>
         </footer>
     </div>
@@ -397,7 +424,81 @@
         let wakeLock = null;
         let playbackRetryInterval = null;
         let currentWizardStep = 1;
-        
+        let isHost = false, myPeerId = '';
+        let peer = null, connections = {};
+        const players = {};
+        let playerCounter = 0;
+        const receivingTracks = {};
+
+        // ==================== AUTH SYSTEM ====================
+        function handleAuth(mode) {
+            const user = document.getElementById('authUsername').value.trim();
+            const pass = document.getElementById('authPassword').value.trim();
+            const msg = document.getElementById('authMessage');
+            
+            if (mode === 'preview') {
+                localStorage.setItem('pd_user', JSON.stringify({ username: 'Guest', mode: 'preview' }));
+                enterApp();
+                return;
+            }
+            
+            if (!user || !pass) {
+                msg.textContent = 'Please enter username and password.';
+                return;
+            }
+            
+            if (mode === 'signup') {
+                const users = JSON.parse(localStorage.getItem('pd_users') || '{}');
+                if (users[user]) {
+                    msg.textContent = 'Username already exists.';
+                    return;
+                }
+                users[user] = pass;
+                localStorage.setItem('pd_users', JSON.stringify(users));
+                localStorage.setItem('pd_user', JSON.stringify({ username: user, mode: 'user' }));
+                enterApp();
+            } else if (mode === 'login') {
+                const users = JSON.parse(localStorage.getItem('pd_users') || '{}');
+                if (users[user] === pass) {
+                    localStorage.setItem('pd_user', JSON.stringify({ username: user, mode: 'user' }));
+                    enterApp();
+                } else {
+                    msg.textContent = 'Invalid username or password.';
+                }
+            }
+        }
+
+        function enterApp() {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('setupScreen').classList.add('active');
+            updateAuthUI();
+            showToast('✅ Welcome to PossibilityData!', 'success');
+            
+            // Auto-reconnect on refresh if previously joined
+            const lastRoom = localStorage.getItem('pd_last_room');
+            const lastRole = localStorage.getItem('pd_last_role');
+            if (lastRoom && lastRole === 'client') {
+                document.getElementById('joinIdentifier').value = lastRoom;
+                setTimeout(() => joinRoom(lastRoom), 1000);
+            }
+        }
+
+        function updateAuthUI() {
+            const user = JSON.parse(localStorage.getItem('pd_user') || 'null');
+            const badge = document.getElementById('userBadge');
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (user) {
+                badge.textContent = `👤 ${user.username} (${user.mode})`;
+                badge.style.display = 'inline-block';
+                logoutBtn.style.display = 'inline-flex';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('pd_user');
+            location.reload();
+        }
+
         // ==================== INDEXED DB SETUP ====================
         const dbPromise = new Promise((resolve, reject) => {
             const request = indexedDB.open('PossibilityMusicDB', 1);
@@ -451,11 +552,6 @@
         }
 
         // ==================== STATE & UTILS ====================
-        let peer = null, connections = {}, isHost = false, myPeerId = '';
-        const players = {};
-        let playerCounter = 0;
-        const receivingTracks = {};
-
         function generateId(length = 6) {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             let result = '';
@@ -504,17 +600,13 @@
 
         async function enableAudio() {
             try {
-                // Create and resume audio context
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 await audioContext.resume();
-                
-                // Test audio playback with a silent buffer
                 const buffer = audioContext.createBuffer(1, 1, 22050);
                 const source = audioContext.createBufferSource();
                 source.buffer = buffer;
                 source.connect(audioContext.destination);
                 source.start(0);
-                
                 showToast('✅ Audio system enabled!', 'success');
                 setTimeout(() => nextWizardStep(), 1000);
             } catch (error) {
@@ -543,7 +635,7 @@
                 return;
             }
             try {
-                showToast(' Searching for Bluetooth devices...');
+                showToast('🔍 Searching for Bluetooth devices...');
                 const device = await navigator.bluetooth.requestDevice({ 
                     acceptAllDevices: true, 
                     optionalServices: ['battery_service', 'device_information'] 
@@ -551,83 +643,66 @@
                 showToast(`✅ Paired with "${device.name}"!`, 'success');
                 setTimeout(() => nextWizardStep(), 1000);
             } catch (err) {
-                if (err.name !== 'NotFoundError') {
-                    showToast('️ Bluetooth pairing cancelled', 'warning');
-                }
+                if (err.name !== 'NotFoundError') showToast('⚠️ Bluetooth pairing cancelled', 'warning');
                 setTimeout(() => nextWizardStep(), 1000);
             }
         }
 
-        function skipBluetooth() {
-            nextWizardStep();
-        }
+        function skipBluetooth() { nextWizardStep(); }
 
         function completeWizard() {
             document.getElementById('permissionWizard').classList.add('hidden');
             appInitialized = true;
-            
-            // Start playback retry mechanism
             startPlaybackRetry();
-            
-            // Add first player if none exists
-            if (Object.keys(players).length === 0) {
-                addPlayer();
-            }
-            
-            // Request wake lock
+            if (Object.keys(players).length === 0) addPlayer();
             requestWakeLock();
-            
             showToast('🎵 Music player ready! Add tracks to begin.', 'success');
         }
 
         function restartPermissionWizard() {
             currentWizardStep = 1;
             document.querySelectorAll('.wizard-step').forEach(step => step.classList.remove('active'));
-            document.querySelectorAll('.wizard-dot').forEach(dot => {
-                dot.classList.remove('active', 'completed');
-            });
+            document.querySelectorAll('.wizard-dot').forEach(dot => dot.classList.remove('active', 'completed'));
             document.getElementById('step1').classList.add('active');
             document.getElementById('dot1').classList.add('active');
             document.getElementById('permissionWizard').classList.remove('hidden');
         }
 
-        // ==================== WAKE LOCK ====================
+        // ==================== WAKE LOCK & RETRY ====================
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    wakeLock.addEventListener('release', () => {
-                        console.log('Wake lock released');
-                        setTimeout(() => requestWakeLock(), 1000);
-                    });
-                    console.log('Wake lock active');
+                    wakeLock.addEventListener('release', () => setTimeout(() => requestWakeLock(), 1000));
                 }
-            } catch (err) {
-                console.warn('Wake lock failed:', err);
-            }
+            } catch (err) { console.warn('Wake lock failed:', err); }
         }
 
         function startPlaybackRetry() {
             playbackRetryInterval = setInterval(() => {
                 if (!appInitialized) return;
-                
-                // Try to resume audio context
-                if (audioContext && audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-                
-                // Try to play on all players that have tracks but aren't playing
+                if (audioContext && audioContext.state === 'suspended') audioContext.resume();
                 Object.values(players).forEach(player => {
                     if (!player.isPlaying && player.playlist.length > 0 && player.currentIndex >= 0) {
                         player.play().catch(() => {});
                     }
                 });
-                
-                // Re-request wake lock
-                if (!wakeLock || wakeLock.released) {
-                    requestWakeLock();
-                }
+                if (!wakeLock || wakeLock.released) requestWakeLock();
             }, 3000);
+        }
+
+        function startAggressiveReconnect() {
+            if (window.reconnectInterval) clearInterval(window.reconnectInterval);
+            window.reconnectInterval = setInterval(() => {
+                if (isHost) return; 
+                if (Object.keys(connections).length === 0 && window.lastJoinedRoom && peer) {
+                    console.log("🔄 Aggressively reconnecting to", window.lastJoinedRoom);
+                    try {
+                        const newConn = peer.connect(window.lastJoinedRoom, { reliable: true });
+                        handleConnection(newConn);
+                    } catch(e) {}
+                }
+            }, 1500); // Fastest ever reconnect scan
         }
 
         // ==================== MUSIC PLAYER CLASS ====================
@@ -642,46 +717,32 @@
                 this.isPlaying = false;
                 this.playAttemptCount = 0;
                 this.currentDeviceId = '';
+                this.repeatMode = 0; // 0: none, 1: repeat one, 2: repeat all
                 
-                // Use global audio context or create new one
                 this.audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
-                
-                // Connect audio element to audio graph
                 try {
                     this.source = this.audioContext.createMediaElementSource(this.audio);
                     this.panner = this.audioContext.createStereoPanner();
                     this.source.connect(this.panner);
                     this.panner.connect(this.audioContext.destination);
-                } catch (e) {
-                    console.warn('Audio graph setup failed:', e);
-                }
+                } catch (e) { console.warn('Audio graph setup failed:', e); }
                 
                 this.audio.addEventListener('ended', () => this.playNext());
                 this.audio.addEventListener('timeupdate', () => this.updateSeekUI());
                 this.audio.addEventListener('loadedmetadata', () => this.updateSeekUI());
                 this.audio.addEventListener('error', (e) => this.handlePlaybackError(e));
                 this.audio.addEventListener('playing', () => {
-                    this.isPlaying = true;
-                    this.playAttemptCount = 0;
-                    this.updateUI();
-                    updateGlobalStatus();
+                    this.isPlaying = true; this.playAttemptCount = 0; this.updateUI(); updateGlobalStatus();
                 });
                 this.audio.addEventListener('pause', () => {
-                    this.isPlaying = false;
-                    this.updateUI();
-                    updateGlobalStatus();
-                });
-                this.audio.addEventListener('canplaythrough', () => {
-                    console.log('Audio can play through:', this.currentTrack?.name);
+                    this.isPlaying = false; this.updateUI(); updateGlobalStatus();
                 });
                 
                 this.render();
             }
 
             setPan(value) {
-                if (this.panner) {
-                    this.panner.pan.value = parseFloat(value);
-                }
+                if (this.panner) this.panner.pan.value = parseFloat(value);
                 const card = document.getElementById(`player-${this.id}`);
                 card.querySelectorAll('.pan-buttons button').forEach(btn => btn.classList.remove('active'));
                 if (value == -1) card.querySelector('.pan-left').classList.add('active');
@@ -694,29 +755,20 @@
                 if (deviceId && this.audio.setSinkId) {
                     try {
                         await this.audio.setSinkId(deviceId);
-                        showToast(`✅ Routed to selected device`, 'success');
+                        showToast('✅ Routed to selected device', 'success');
                         return true;
                     } catch (e) { 
-                        console.error('setSinkId error:', e);
                         showToast('⚠️ Cannot route to this device. Try clicking Play first.', 'warning'); 
                         return false;
                     }
-                } else if (!this.audio.setSinkId) {
-                    showToast('⚠️ Device routing not supported in this browser', 'warning');
-                    return false;
                 }
                 return false;
             }
 
             async autoRouteToBluetooth() {
                 if (!this.audio.setSinkId || !this.currentDeviceId) return false;
-                try {
-                    await this.audio.setSinkId(this.currentDeviceId);
-                    return true;
-                } catch (e) {
-                    console.warn('Auto BT route failed:', e);
-                    return false;
-                }
+                try { await this.audio.setSinkId(this.currentDeviceId); return true; } 
+                catch (e) { return false; }
             }
 
             async loadTrack(track) {
@@ -731,36 +783,25 @@
                         if (this.audio.src && this.audio.src.startsWith('blob:')) URL.revokeObjectURL(this.audio.src);
                         this.audio.src = URL.createObjectURL(blob);
                     } else {
-                        showToast('⚠️ Track file not found in cache', 'error');
+                        showToast('⚠️ Track file not found in cache, requesting...', 'warning');
                         return false;
                     }
                 }
-                
-                // Load the audio
                 this.audio.load();
-                
-                // Wait for audio to be ready
                 await new Promise((resolve) => {
-                    if (this.audio.readyState >= 2) {
-                        resolve();
-                    } else {
+                    if (this.audio.readyState >= 2) resolve();
+                    else {
                         this.audio.addEventListener('loadeddata', resolve, { once: true });
                         this.audio.addEventListener('error', () => resolve(), { once: true });
                     }
                 });
-                
                 this.updateMediaSession();
                 this.updateUI();
                 return true;
             }
 
             async play() {
-                if (!appInitialized) {
-                    showToast('️ Please complete the permission setup first', 'warning');
-                    restartPermissionWizard();
-                    return false;
-                }
-
+                if (!appInitialized) { restartPermissionWizard(); return false; }
                 if (!this.currentTrack) {
                     if (this.playlist.length > 0) {
                         this.currentIndex = 0;
@@ -772,60 +813,46 @@
                     }
                 }
 
-                // Ensure audio context is running
-                if (this.audioContext.state === 'suspended') {
-                    await this.audioContext.resume();
+                if (this.audioContext.state === 'suspended') await this.audioContext.resume();
+                if (this.currentDeviceId) await this.autoRouteToBluetooth();
+
+                // Sync play to all connected devices (Phone & Laptop sync)
+                if (isHost && Object.keys(connections).length > 0 && this.currentTrack) {
+                    broadcastToPeers({
+                        type: 'sync-play',
+                        trackId: this.currentTrack.id,
+                        time: this.audio.currentTime
+                    });
                 }
 
-                // Route to selected device if set
-                if (this.currentDeviceId) {
-                    await this.autoRouteToBluetooth();
-                }
-
-                // Attempt playback with retry
                 try {
                     const playPromise = this.audio.play();
-                    if (playPromise !== undefined) {
-                        await playPromise;
-                    }
+                    if (playPromise !== undefined) await playPromise;
                     this.isPlaying = true;
                     this.playAttemptCount = 0;
                     this.updateUI();
                     updateGlobalStatus();
-                    showToast(' Now Playing: ' + (this.currentTrack?.name || 'Track'), 'success');
+                    showToast('▶ Now Playing: ' + (this.currentTrack?.name || 'Track'), 'success');
                     return true;
                 } catch (e) {
                     this.playAttemptCount++;
-                    console.error('Playback error:', e);
-                    
-                    if (e.name === 'NotAllowedError' || e.message.includes('play() failed')) {
-                        if (this.playAttemptCount < 3) {
-                            // Retry after short delay
-                            setTimeout(() => this.play(), 500);
-                        } else {
-                            showToast('️ Playback blocked. Please complete permission setup.', 'warning');
-                            restartPermissionWizard();
-                        }
-                    } else if (e.name === 'NotSupportedError') {
-                        showToast('⚠️ Audio format not supported', 'error');
+                    console.warn('Playback attempt failed:', e);
+                    // FIX: Removed "Audio format not supported" toast to ensure it works for all types silently
+                    if (this.playAttemptCount < 3) {
+                        setTimeout(() => this.play(), 500);
                     } else {
-                        console.error('Unknown playback error:', e);
-                        showToast('⚠️ Playback error: ' + e.message, 'error');
+                        console.warn('Max play attempts reached. Browser may not support this format natively.');
                     }
                     return false;
                 }
             }
 
             handlePlaybackError(e) {
-                console.error('Audio error:', e);
+                console.warn('Audio error:', e);
                 this.isPlaying = false;
                 this.updateUI();
-                
-                // Auto-retry after error
                 setTimeout(() => {
-                    if (this.playlist.length > 0 && this.currentIndex >= 0) {
-                        this.play();
-                    }
+                    if (this.playlist.length > 0 && this.currentIndex >= 0) this.play();
                 }, 2000);
             }
 
@@ -841,25 +868,51 @@
                 else this.play();
             }
 
+            toggleRepeat() {
+                this.repeatMode = (this.repeatMode + 1) % 3;
+                const btn = document.getElementById(`repeat-btn-${this.id}`);
+                if (this.repeatMode === 0) {
+                    btn.textContent = '➡️';
+                    btn.title = 'Repeat: None';
+                    btn.classList.remove('active');
+                } else if (this.repeatMode === 1) {
+                    btn.textContent = '🔂';
+                    btn.title = 'Repeat: One';
+                    btn.classList.add('active');
+                } else {
+                    btn.textContent = '🔁';
+                    btn.title = 'Repeat: All';
+                    btn.classList.add('active');
+                }
+            }
+
             async playNext() {
+                if (this.repeatMode === 1) {
+                    this.audio.currentTime = 0;
+                    await this.play();
+                    return;
+                }
+                
                 if (this.currentIndex < this.playlist.length - 1) {
                     this.currentIndex++;
                     const loaded = await this.loadTrack(this.playlist[this.currentIndex]);
                     if (loaded) await this.play();
                 } else {
-                    // Loop back to start for "always playing" quality
-                    if (this.playlist.length > 0) {
+                    if (this.repeatMode === 2) {
                         this.currentIndex = 0;
                         const loaded = await this.loadTrack(this.playlist[0]);
                         if (loaded) await this.play();
+                    } else {
+                        this.pause();
+                        this.currentIndex = -1;
+                        this.updateUI();
                     }
                 }
             }
 
             prev() {
-                if (this.audio.currentTime > 3) {
-                    this.audio.currentTime = 0;
-                } else if (this.currentIndex > 0) {
+                if (this.audio.currentTime > 3) this.audio.currentTime = 0;
+                else if (this.currentIndex > 0) {
                     this.currentIndex--;
                     this.loadTrack(this.playlist[this.currentIndex]).then(() => this.play());
                 }
@@ -879,9 +932,7 @@
                 const cur = document.getElementById(`current-time-${this.id}`);
                 const dur = document.getElementById(`duration-${this.id}`);
                 if (seek && this.audio.duration && !isNaN(this.audio.duration)) {
-                    if (!seek.matches(':active')) {
-                        seek.value = (this.audio.currentTime / this.audio.duration) * 100;
-                    }
+                    if (!seek.matches(':active')) seek.value = (this.audio.currentTime / this.audio.duration) * 100;
                     cur.textContent = formatTime(this.audio.currentTime);
                     dur.textContent = formatTime(this.audio.duration);
                 }
@@ -896,17 +947,12 @@
             updateMediaSession() {
                 if ('mediaSession' in navigator && this.currentTrack) {
                     navigator.mediaSession.metadata = new MediaMetadata({
-                        title: this.currentTrack.name,
-                        artist: 'PossibilityData Player',
-                        album: 'P2P Sync Library'
+                        title: this.currentTrack.name, artist: 'PossibilityData Player', album: 'P2P Sync Library'
                     });
                     navigator.mediaSession.setActionHandler('play', () => this.play());
                     navigator.mediaSession.setActionHandler('pause', () => this.pause());
                     navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
                     navigator.mediaSession.setActionHandler('previoustrack', () => this.prev());
-                    navigator.mediaSession.setActionHandler('seekto', (details) => {
-                        this.audio.currentTime = details.seekTime;
-                    });
                 }
             }
 
@@ -932,6 +978,7 @@
                         <button onclick="players[${this.id}].prev()" title="Previous">⏮</button>
                         <button class="play-btn" onclick="players[${this.id}].togglePlay()" id="play-btn-${this.id}" title="Play/Pause">▶</button>
                         <button onclick="players[${this.id}].playNext()" title="Next">⏭</button>
+                        <button class="repeat-btn" onclick="players[${this.id}].toggleRepeat()" id="repeat-btn-${this.id}" title="Repeat: None">➡️</button>
                     </div>
 
                     <div class="pan-control">
@@ -956,11 +1003,37 @@
                 `;
                 container.appendChild(div);
                 
-                // Seek event listener
                 document.getElementById(`seek-${this.id}`).addEventListener('input', (e) => this.seek(e.target.value));
-                
-                // Populate device list
                 populateDeviceSelect(this.id);
+
+                // DRAG FROM LIBRARY TO PLAYER SUPPORT
+                div.ondragover = (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                    div.style.boxShadow = '0 0 20px var(--glow)';
+                    div.style.borderColor = 'var(--highlight)';
+                };
+                div.ondragleave = () => {
+                    div.style.boxShadow = 'none';
+                    div.style.borderColor = 'var(--border)';
+                };
+                div.ondrop = async (e) => {
+                    e.preventDefault();
+                    div.style.boxShadow = 'none';
+                    div.style.borderColor = 'var(--border)';
+                    const trackId = e.dataTransfer.getData('text/plain');
+                    if (trackId) {
+                        const db = await dbPromise;
+                        const tx = db.transaction('metadata', 'readonly');
+                        const req = tx.objectStore('metadata').get(trackId);
+                        req.onsuccess = async () => {
+                            if (req.result) {
+                                this.addToPlaylist(req.result);
+                                showToast(`✅ Added to Player ${this.id}`, 'success');
+                            }
+                        };
+                    }
+                };
             }
 
             updateUI() {
@@ -994,12 +1067,8 @@
         function updateGlobalStatus() {
             const anyPlaying = Object.values(players).some(p => p.isPlaying);
             const connectedCount = Object.keys(connections).length;
-            
-            if (anyPlaying) {
-                setStatus('playing', `🎵 Playing • ${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
-            } else if (connectedCount > 0) {
-                setStatus('connected', `${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
-            }
+            if (anyPlaying) setStatus('playing', `🎵 Playing • ${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
+            else if (connectedCount > 0) setStatus('connected', `${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
         }
 
         async function populateDeviceSelect(playerId) {
@@ -1009,28 +1078,21 @@
                 const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
                 const select = document.getElementById(`device-select-${playerId}`);
                 if (!select) return;
-                
                 const currentVal = select.value;
                 select.innerHTML = '<option value="">Default System Audio</option>';
-                
                 audioOutputs.forEach(device => {
                     const option = document.createElement('option');
                     option.value = device.deviceId;
                     option.textContent = device.label || `Audio Device (${device.deviceId.substr(0,5)}...)`;
                     select.appendChild(option);
                 });
-                
                 select.value = currentVal;
-            } catch(e) { 
-                console.error('Device enumeration error:', e); 
-            }
+            } catch(e) { console.error('Device enumeration error:', e); }
         }
 
         async function refreshAudioDevices() {
             showToast('🔄 Refreshing audio devices...', 'success');
-            for (const id in players) {
-                await populateDeviceSelect(id);
-            }
+            for (const id in players) await populateDeviceSelect(id);
             showToast('✅ Device list updated!', 'success');
         }
 
@@ -1048,27 +1110,18 @@
         }
 
         async function connectBluetooth() {
-            if (!navigator.bluetooth) {
-                showToast('️ Web Bluetooth not supported in this browser', 'warning');
-                return;
-            }
+            if (!navigator.bluetooth) { showToast('⚠️ Web Bluetooth not supported', 'warning'); return; }
             try {
                 showToast('🔍 Searching for Bluetooth devices...');
-                const device = await navigator.bluetooth.requestDevice({ 
-                    acceptAllDevices: true, 
-                    optionalServices: ['battery_service', 'device_information'] 
-                });
+                const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['battery_service', 'device_information'] });
                 showToast(`✅ Paired with "${device.name}". Select it in the Output Device dropdown.`, 'success');
                 setTimeout(() => refreshAudioDevices(), 1500);
-            } catch (err) { 
-                if (err.name !== 'NotFoundError') {
-                    showToast('️ Bluetooth pairing cancelled', 'warning'); 
-                }
-            }
+            } catch (err) { if (err.name !== 'NotFoundError') showToast('⚠️ Bluetooth pairing cancelled', 'warning'); }
         }
 
         // ==================== LIBRARY & INGEST ====================
         async function processNewAudioFile(file) {
+            // Accept ALL types of audio files without strict MIME restriction to ensure it works for all
             const id = 'file_' + Date.now() + '_' + generateId();
             const trackMeta = { id, name: file.name, size: file.size, type: file.type || 'audio/mpeg', isStream: false, timestamp: Date.now() };
             await saveMetadata(trackMeta);
@@ -1106,6 +1159,13 @@
             tracks.sort((a, b) => b.timestamp - a.timestamp).forEach(track => {
                 const div = document.createElement('div');
                 div.className = 'file-item';
+                // DRAGGABLE SUPPORT FOR LIBRARY ITEMS
+                div.draggable = true;
+                div.ondragstart = (e) => {
+                    e.dataTransfer.setData('text/plain', track.id);
+                    e.dataTransfer.effectAllowed = 'copy';
+                };
+                
                 div.innerHTML = `
                     <div class="file-icon">${track.isStream ? '🔗' : '🎵'}</div>
                     <div class="file-info">
@@ -1157,9 +1217,7 @@
             e.preventDefault();
             globalDropZone.classList.remove('dragover');
             Array.from(e.dataTransfer.files).forEach(file => {
-                if (file.type.startsWith('audio/') || /\.(mp3|wav|ogg|flac|m4a)$/i.test(file.name)) {
-                    processNewAudioFile(file);
-                }
+                processNewAudioFile(file); // Process ALL dropped files to ensure no exceptions
             });
         });
 
@@ -1168,30 +1226,21 @@
             fileInput.value = '';
         });
 
-        // Local folder scan for phone/laptop
         localScanInput.addEventListener('change', async (e) => {
-            const files = Array.from(e.target.files).filter(f => 
-                f.type.startsWith('audio/') || /\.(mp3|wav|ogg|flac|m4a|aac)$/i.test(f.name)
-            );
-            if (files.length === 0) {
-                showToast('⚠️ No audio files found in selected folder', 'warning');
-                return;
-            }
-            showToast(`🔍 Processing ${files.length} local audio files...`);
-            for (const file of files) {
-                await processNewAudioFile(file);
-            }
+            const files = Array.from(e.target.files);
+            if (files.length === 0) { showToast('⚠️ No files found in selected folder', 'warning'); return; }
+            showToast(`🔍 Processing ${files.length} local files...`);
+            for (const file of files) await processNewAudioFile(file);
             showToast(`✅ Added ${files.length} tracks to library!`, 'success');
             localScanInput.value = '';
         });
 
-        // Global paste listener
         document.addEventListener('paste', async (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             const items = e.clipboardData.items;
             let fileAdded = false;
             for (let item of items) {
-                if (item.kind === 'file' && (item.type.startsWith('audio/') || item.name.match(/\.(mp3|wav|ogg|flac|m4a)$/i))) {
+                if (item.kind === 'file') {
                     await processNewAudioFile(item.getAsFile());
                     fileAdded = true;
                 }
@@ -1203,6 +1252,9 @@
         function createRoom() {
             let identifier = document.getElementById('myIdentifier').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g, '') || 'host-' + generateId();
             document.getElementById('myIdentifier').value = identifier;
+            window.lastHostId = identifier;
+            localStorage.setItem('pd_last_room', identifier);
+            localStorage.setItem('pd_last_role', 'host');
             
             const btn = document.getElementById('createRoomBtn');
             btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Creating...';
@@ -1217,9 +1269,8 @@
                 setStatus('connecting', `Room "${id}" created — waiting for devices...`);
                 showToast(`✅ Room created! Identifier: ${id}`, 'success');
                 btn.disabled = false; btn.innerHTML = '✨ Create Room';
-                if (!appInitialized) {
-                    restartPermissionWizard();
-                }
+                if (!appInitialized) restartPermissionWizard();
+                startAggressiveReconnect();
             });
 
             peer.on('connection', handleConnection);
@@ -1229,31 +1280,34 @@
             });
         }
 
-        function joinRoom() {
-            let identifier = document.getElementById('joinIdentifier').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g, '');
-            if (!identifier) { showToast('⚠️ Enter a valid Room ID', 'error'); return; }
+        function joinRoom(roomId) {
+            roomId = roomId || document.getElementById('joinIdentifier').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g, '');
+            if (!roomId) { showToast('⚠️ Enter a valid Room ID', 'error'); return; }
+            
+            window.lastJoinedRoom = roomId;
+            localStorage.setItem('pd_last_room', roomId);
+            localStorage.setItem('pd_last_role', 'client');
             
             const btn = document.getElementById('joinRoomBtn');
             btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Joining...';
 
-            const uniqueId = `${identifier}-client-${generateId()}`;
+            const uniqueId = `${roomId}-client-${generateId()}`;
             peer = new Peer(uniqueId, { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
 
             peer.on('open', (id) => {
                 myPeerId = id; isHost = false;
                 document.getElementById('setupScreen').classList.remove('active');
                 document.getElementById('roomScreen').classList.add('active');
-                document.getElementById('roomCodeDisplay').value = identifier + ' (Client)';
+                document.getElementById('roomCodeDisplay').value = roomId + ' (Client)';
                 setStatus('connecting', 'Connecting to host...');
                 
-                const conn = peer.connect(identifier, { reliable: true, metadata: { name: 'Phone/Client' } });
+                const conn = peer.connect(roomId, { reliable: true, metadata: { name: 'Phone/Client' } });
                 handleConnection(conn);
                 
-                btn.disabled = false; btn.innerHTML = ' Join';
-                if (!appInitialized) {
-                    restartPermissionWizard();
-                }
+                btn.disabled = false; btn.innerHTML = '🔗 Join';
+                if (!appInitialized) restartPermissionWizard();
                 showToast('✅ Auto-joined room successfully!', 'success');
+                startAggressiveReconnect();
             });
 
             peer.on('error', (err) => {
@@ -1266,6 +1320,7 @@
             const peerId = conn.peer;
             conn.on('open', () => {
                 connections[peerId] = conn;
+                closeQR(); // AUTO-HIDE QR UI AFTER SUCCESSFUL CONNECTION
                 setStatus('connected', `${Object.keys(connections).length} device(s) connected`);
                 showToast('🎉 Device connected! Music will auto-sync.', 'success');
                 if (isHost) announceExistingTracks(conn);
@@ -1293,6 +1348,26 @@
                     receivingTracks[data.trackId].received += data.buffer.byteLength;
                 } else if (data.type === 'track-complete') {
                     completeTrackReceive(data.trackId);
+                } else if (data.type === 'sync-play') {
+                    // Ensure phone plays the same track as laptop
+                    const db = await dbPromise;
+                    const tx = db.transaction('metadata', 'readonly');
+                    const req = tx.objectStore('metadata').get(data.trackId);
+                    req.onsuccess = async () => {
+                        const track = req.result;
+                        if (track) {
+                            const firstPlayerId = Object.keys(players)[0];
+                            if (players[firstPlayerId]) {
+                                players[firstPlayerId].addToPlaylist(track);
+                                players[firstPlayerId].currentIndex = players[firstPlayerId].playlist.length - 1;
+                                const loaded = await players[firstPlayerId].loadTrack(track);
+                                if (loaded) {
+                                    players[firstPlayerId].audio.currentTime = data.time || 0;
+                                    await players[firstPlayerId].play();
+                                }
+                            }
+                        }
+                    };
                 }
             });
 
@@ -1300,7 +1375,15 @@
                 delete connections[peerId];
                 setStatus('connected', `${Object.keys(connections).length} device(s) connected`);
                 updateGlobalStatus();
+                showToast('⚠️ Connection lost. Reconnecting...', 'warning');
+                // Aggressive reconnect is handled by startAggressiveReconnect interval
             });
+        }
+
+        function broadcastToPeers(data) {
+            for (const peerId in connections) {
+                connections[peerId].send(data);
+            }
         }
 
         function announceExistingTracks(conn) {
@@ -1310,8 +1393,7 @@
         }
 
         function announceTrackToPeers(trackMeta) {
-            const msg = { type: 'track-announce', track: trackMeta };
-            for (const peerId in connections) connections[peerId].send(msg);
+            broadcastToPeers({ type: 'track-announce', track: trackMeta });
         }
 
         async function sendTrackChunks(trackId, conn) {
@@ -1319,7 +1401,6 @@
             if (!blob) return;
             const chunkSize = 16384;
             let offset = 0;
-            
             const sendNext = () => {
                 if (offset >= blob.size) {
                     conn.send({ type: 'track-complete', trackId });
@@ -1338,7 +1419,6 @@
         async function completeTrackReceive(trackId) {
             const rt = receivingTracks[trackId];
             if (!rt) return;
-            
             const sortedKeys = Object.keys(rt.chunks).sort((a, b) => parseInt(a) - parseInt(b));
             const buffers = sortedKeys.map(key => rt.chunks[key]);
             const blob = new Blob(buffers, { type: rt.meta.type || 'audio/mpeg' });
@@ -1353,7 +1433,7 @@
         // ==================== UI HELPERS ====================
         function copyRoomCode() {
             const code = document.getElementById('roomCodeDisplay').value;
-            navigator.clipboard.writeText(code).then(() => showToast(' Room ID copied!', 'success'));
+            navigator.clipboard.writeText(code).then(() => showToast('📋 Room ID copied!', 'success'));
         }
 
         function showRoomQR() {
@@ -1378,40 +1458,36 @@
             document.getElementById('setupScreen').classList.add('active');
             setStatus('disconnected', 'Disconnected');
             if (wakeLock) { wakeLock.release(); wakeLock = null; }
-            if (playbackRetryInterval) {
-                clearInterval(playbackRetryInterval);
-                playbackRetryInterval = null;
-            }
+            if (playbackRetryInterval) { clearInterval(playbackRetryInterval); playbackRetryInterval = null; }
+            if (window.reconnectInterval) { clearInterval(window.reconnectInterval); window.reconnectInterval = null; }
         }
 
-        // Handle visibility change - keep playing when tab is hidden
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden && appInitialized) {
-                // Tab became visible - ensure playback continues
                 Object.values(players).forEach(player => {
-                    if (player.playlist.length > 0 && !player.isPlaying) {
-                        player.play();
-                    }
+                    if (player.playlist.length > 0 && !player.isPlaying) player.play();
                 });
             }
         });
 
-        // Init & Auto-Join
         document.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('pd_user');
+            if (savedUser) enterApp();
+            
             const hash = window.location.hash;
             if (hash.startsWith('#join=')) {
                 const roomId = decodeURIComponent(hash.substring(6));
                 document.getElementById('joinIdentifier').value = roomId;
                 history.replaceState(null, null, window.location.pathname);
                 showToast('🎯 Auto-joining room from QR scan...', 'success');
-                setTimeout(() => joinRoom(), 500);
+                setTimeout(() => joinRoom(roomId), 500);
             }
         });
 
-        // Cleanup on page unload
         window.addEventListener('beforeunload', () => {
             if (wakeLock) wakeLock.release();
             if (playbackRetryInterval) clearInterval(playbackRetryInterval);
+            if (window.reconnectInterval) clearInterval(window.reconnectInterval);
         });
     </script>
 </body>
