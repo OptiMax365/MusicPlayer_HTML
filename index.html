@@ -1,1277 +1,1676 @@
-        <!-- Step 1: Welcome -->
-        <div class="wizard-step active" id="step1">
-            <span class="wizard-icon">🎵</span>
-            <h2>Welcome to PossibilityData</h2>
-            <p>Your always-on music player with P2P sync. We need a few permissions to enable continuous playback and Bluetooth routing.</p>
-            <button class="btn btn-primary btn-large" onclick="nextWizardStep()">Get Started</button>
-        </div>
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎵 POSSIBILITYDATA — Always-On Music Sync</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0f0a; --bg-secondary: #0f1a0f; --bg-card: #1a2e1a;
+            --bg-input: #142a14; --accent: #1a5f1a; --accent-light: #2d862d;
+            --highlight: #00c853; --text-primary: #ffffff; --text-secondary: #a8d8a8;
+            --success: #00e676; --warning: #ffb74d; --border: #2a4a2a;
+            --glow: rgba(0, 200, 83, 0.35); --radius: 16px;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary); color: var(--text-primary);
+            min-height: 100vh; overflow-x: hidden;
+        }
+        body::before {
+            content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle at 30% 40%, rgba(0, 200, 83, 0.06) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 60%, rgba(0, 230, 118, 0.04) 0%, transparent 50%);
+            animation: bgFloat 20s ease-in-out infinite; z-index: -1; pointer-events: none;
+        }
+        @keyframes bgFloat { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-2%, -2%) rotate(1deg); } }
+        
+        .container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 16px; min-height: 100vh; display: flex; flex-direction: column; }
+        header { text-align: center; padding: 20px 0; }
+        .logo { font-size: 2.5rem; margin-bottom: 5px; animation: pulse 2s infinite; display: inline-block; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        header h1 { 
+            font-size: 1.8rem; font-weight: 800; 
+            background: linear-gradient(135deg, var(--highlight), var(--accent-light), #66bb6a); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; 
+        }
+        header p { color: var(--text-secondary); margin-top: 6px; font-size: 0.9rem; }
 
-        <!-- Step 2: Audio Context -->
-        <div class="wizard-step" id="step2">
-            <span class="wizard-icon">🔊</span>
-            <h2>Enable Audio Playback</h2>
-            <p>We need to initialize the audio system. Click the button below to allow audio playback for all file types.</p>
-            <button class="btn btn-primary btn-large" onclick="enableAudio()">Enable Audio</button>
-        </div>
+        .status-bar {
+            display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px;
+            margin-bottom: 16px; font-size: 13px; font-weight: 600; border: 1px solid var(--border);
+        }
+        .status-bar.disconnected { background: rgba(255, 107, 107, 0.1); border-color: rgba(255, 107, 107, 0.3); color: #ff8a8a; }
+        .status-bar.connecting { background: rgba(0, 200, 83, 0.1); border-color: rgba(0, 200, 83, 0.3); color: var(--highlight); }
+        .status-bar.connected { background: rgba(0, 230, 118, 0.1); border-color: rgba(0, 230, 118, 0.3); color: var(--success); }
+        .status-bar.playing { background: rgba(0, 200, 83, 0.2); border-color: var(--highlight); color: var(--success); box-shadow: 0 0 20px var(--glow); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+        .status-bar.connecting .status-dot { animation: pulse 1s infinite; }
+        .status-bar.playing .status-dot { animation: pulse 1.5s infinite; box-shadow: 0 0 10px var(--highlight); }
 
-        <!-- Step 3: Device Labels -->
-        <div class="wizard-step" id="step3">
-            <span class="wizard-icon">🎧</span>
-            <h2>Enable Device Detection</h2>
-            <p>Allow microphone access so we can detect your Bluetooth headphones and speakers. Your mic won't be used, just needed for device labels.</p>
-            <button class="btn btn-primary btn-large" onclick="enableDeviceLabels()">Allow Device Access</button>
-        </div>
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+        .main-grid { display: grid; grid-template-columns: 280px 1fr 300px; gap: 16px; }
+        @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+        
+        .card-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; color: var(--highlight); }
 
-        <!-- Step 4: Bluetooth (Optional) -->
-        <div class="wizard-step" id="step4">
-            <span class="wizard-icon">📶</span>
-            <h2>Connect Bluetooth (Optional)</h2>
-            <p>Would you like to pair a Bluetooth device now? You can skip this and do it later from the settings.</p>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <button class="btn btn-primary" onclick="enableBluetooth()">Connect BT</button>
-                <button class="btn btn-outline" onclick="skipBluetooth()">Skip</button>
+        .btn {
+            padding: 12px 16px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: linear-gradient(135deg, var(--highlight), var(--accent-light)); color: white; }
+        .btn-primary:hover:not(:disabled) { box-shadow: 0 4px 20px var(--glow); }
+        .btn-success { background: linear-gradient(135deg, var(--success), #00b368); color: #000; }
+        .btn-danger { background: linear-gradient(135deg, #ff6b6b, #e05555); color: white; }
+        .btn-outline { background: transparent; border: 2px solid var(--highlight); color: var(--highlight); }
+        .btn-outline:hover:not(:disabled) { background: rgba(0, 200, 83, 0.1); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎵 POSSIBILITYDATA — Always-On Music Sync</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0f0a; --bg-secondary: #0f1a0f; --bg-card: #1a2e1a;
+            --bg-input: #142a14; --accent: #1a5f1a; --accent-light: #2d862d;
+            --highlight: #00c853; --text-primary: #ffffff; --text-secondary: #a8d8a8;
+            --success: #00e676; --warning: #ffb74d; --border: #2a4a2a;
+            --glow: rgba(0, 200, 83, 0.35); --radius: 16px;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary); color: var(--text-primary);
+            min-height: 100vh; overflow-x: hidden;
+        }
+        body::before {
+            content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle at 30% 40%, rgba(0, 200, 83, 0.06) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 60%, rgba(0, 230, 118, 0.04) 0%, transparent 50%);
+            animation: bgFloat 20s ease-in-out infinite; z-index: -1; pointer-events: none;
+        }
+        @keyframes bgFloat { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-2%, -2%) rotate(1deg); } }
+        
+        .container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 16px; min-height: 100vh; display: flex; flex-direction: column; }
+        header { text-align: center; padding: 20px 0; }
+        .logo { font-size: 2.5rem; margin-bottom: 5px; animation: pulse 2s infinite; display: inline-block; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        header h1 { 
+            font-size: 1.8rem; font-weight: 800; 
+            background: linear-gradient(135deg, var(--highlight), var(--accent-light), #66bb6a); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; 
+        }
+        header p { color: var(--text-secondary); margin-top: 6px; font-size: 0.9rem; }
+
+        .status-bar {
+            display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px;
+            margin-bottom: 16px; font-size: 13px; font-weight: 600; border: 1px solid var(--border);
+        }
+        .status-bar.disconnected { background: rgba(255, 107, 107, 0.1); border-color: rgba(255, 107, 107, 0.3); color: #ff8a8a; }
+        .status-bar.connecting { background: rgba(0, 200, 83, 0.1); border-color: rgba(0, 200, 83, 0.3); color: var(--highlight); }
+        .status-bar.connected { background: rgba(0, 230, 118, 0.1); border-color: rgba(0, 230, 118, 0.3); color: var(--success); }
+        .status-bar.playing { background: rgba(0, 200, 83, 0.2); border-color: var(--highlight); color: var(--success); box-shadow: 0 0 20px var(--glow); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+        .status-bar.connecting .status-dot { animation: pulse 1s infinite; }
+        .status-bar.playing .status-dot { animation: pulse 1.5s infinite; box-shadow: 0 0 10px var(--highlight); }
+
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+        .main-grid { display: grid; grid-template-columns: 280px 1fr 300px; gap: 16px; }
+        @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+        
+        .card-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; color: var(--highlight); }
+
+        .btn {
+            padding: 12px 16px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: linear-gradient(135deg, var(--highlight), var(--accent-light)); color: white; }
+        .btn-primary:hover:not(:disabled) { box-shadow: 0 4px 20px var(--glow); }
+        .btn-success { background: linear-gradient(135deg, var(--success), #00b368); color: #000; }
+        .btn-danger { background: linear-gradient(135deg, #ff6b6b, #e05555); color: white; }
+        .btn-outline { background: transparent; border: 2px solid var(--highlight); color: var(--highlight); }
+        .btn-outline:hover:not(:disabled) { background: rgba(0, 200, 83, 0.1); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-sm { padding: 8px 12px; font-size: 12px; width: auto; }
+        .btn-large { padding: 16px 32px; font-size: 18px; }
+
+        .input-group { margin-bottom: 14px; }
+        .input-group label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; }
+        .input-field {
+            width: 100%; padding: 12px; background: var(--bg-input); border: 2px solid var(--border);
+            border-radius: 10px; color: var(--text-primary); font-size: 14px;
+        }
+        .input-field:focus { outline: none; border-color: var(--highlight); }
+        .input-field.identifier { text-align: center; font-family: monospace; font-size: 16px; letter-spacing: 2px; }
+
+        .drop-zone {
+            border: 2px dashed var(--border); border-radius: var(--radius); padding: 24px 16px; text-align: center;
+            cursor: pointer; transition: all 0.3s; position: relative; background: var(--bg-input);
+        }
+        .drop-zone:hover, .drop-zone.dragover, .drop-zone:focus {
+            border-color: var(--highlight); background: rgba(0, 200, 83, 0.05); outline: none; box-shadow: 0 0 15px var(--glow);
+        }
+        .drop-zone .drop-icon { font-size: 36px; margin-bottom: 8px; }
+        .drop-zone .drop-text { font-size: 14px; color: var(--text-primary); margin-bottom: 4px; }
+        .drop-zone .drop-subtext { font-size: 11px; color: var(--text-secondary); }
+        .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .highlight { color: var(--highlight); font-weight: 700; }
+
+        .player-card { 
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); 
+            padding: 16px; margin-bottom: 16px; transition: all 0.3s;
+        }
+        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 700; color: var(--highlight); font-size: 14px; }
+        .track-info {
+            background: var(--bg-input); padding: 10px; border-radius: 8px; margin-bottom: 12px;
+            font-size: 13px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary);
+        }
+        .track-info.active { color: var(--highlight); font-weight: 700; border: 1px solid var(--highlight); box-shadow: 0 0 10px var(--glow); animation: pulse 2s infinite; }
+        
+        .player-controls { display: flex; justify-content: center; gap: 12px; margin-bottom: 16px; }
+        .player-controls button {
+            background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary);
+            width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px;
+            transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+        }
+        .player-controls button:hover { background: var(--highlight); color: white; border-color: var(--highlight); }
+        .player-controls button.play-btn { width: 56px; height: 56px; font-size: 24px; background: var(--highlight); color: white; border: none; box-shadow: 0 4px 15px var(--glow); }
+        .player-controls button.play-btn:hover { transform: scale(1.1); box-shadow: 0 6px 20px var(--glow); }
+        .player-controls button.repeat-btn { width: 36px; height: 36px; font-size: 16px; color: var(--text-secondary); }
+        .player-controls button.repeat-btn.active { color: var(--highlight); border-color: var(--highlight); background: rgba(0, 200, 83, 0.1); }
+
+        .seek-control { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 11px; color: var(--text-secondary); font-family: monospace; }
+        .seek-control input[type="range"] { flex: 1; accent-color: var(--highlight); cursor: pointer; height: 6px; }
+        
+        .pan-control { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px; color: var(--text-secondary); }
+        .pan-control input[type="range"] { flex: 1; accent-color: var(--highlight); }
+        .pan-buttons { display: flex; gap: 4px; margin-top: 6px; width: 100%; }
+        .pan-buttons button {
+            flex: 1; padding: 6px; font-size: 11px; background: var(--bg-input);
+            border: 1px solid var(--border); color: var(--text-secondary); border-radius: 6px; cursor: pointer;
+        }
+        .pan-buttons button:hover, .pan-buttons button.active { border-color: var(--highlight); color: var(--highlight); background: rgba(0,200,83,0.1); }
+        
+        .device-control { margin-bottom: 12px; font-size: 12px; }
+        .device-control select {
+            width: 100%; padding: 8px; margin-top: 4px; background: var(--bg-input);
+            border: 1px solid var(--border); color: var(--text-primary); border-radius: 8px; font-size: 12px;
+        }
+        .player-playlist { max-height: 150px; overflow-y: auto; margin-bottom: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
+        .playlist-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px; font-size: 12px; border-radius: 6px; cursor: pointer; color: var(--text-secondary); transition: background 0.2s;
+        }
+        .playlist-item:hover { background: var(--bg-secondary); color: var(--text-primary); }
+        .playlist-item.active { color: var(--highlight); font-weight: 700; background: rgba(0, 200, 83, 0.1); border-left: 3px solid var(--highlight); }
+
+        .file-list { margin-top: 10px; max-height: 400px; overflow-y: auto; }
+        .file-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px;
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px;
+            cursor: grab; transition: all 0.2s;
+        }
+        .file-item:active { cursor: grabbing; }
+        .file-item:hover { border-color: var(--highlight); background: rgba(0, 200, 83, 0.05); }
+        .file-icon { font-size: 22px; flex-shrink: 0; width: 28px; text-align: center; }
+        .file-info { flex: 1; min-width: 0; }
+        .file-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+        .file-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .file-btn {
+            padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+        }
+        .file-btn.download { background: var(--highlight); color: white; }
+        .file-btn.remove { background: rgba(255, 107, 107, 0.15); color: #ff8a8a; }
+
+        /* PERMISSION WIZARD & AUTH */
+        .permission-wizard, .auth-screen {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.95); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            backdrop-filter: blur(10px); padding: 20px;
+        }
+        .permission-wizard.hidden, .auth-screen.hidden { display: none; }
+        .wizard-container, .auth-container {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
+            padding: 32px; max-width: 500px; width: 100%; text-align: center;
+        }
+        .wizard-step { display: none; animation: fadeIn 0.3s ease; }
+        .wizard-step.active { display: block; }
+        .wizard-step h2, .auth-container h2 { font-size: 1.5rem; margin-bottom: 16px; color: var(--highlight); }
+        .wizard-step p, .auth-container p { color: var(--text-secondary); margin-bottom: 24px; line-height: 1.6; }
+        .wizard-icon { font-size: 48px; margin-bottom: 16px; display: block; }
+        .wizard-progress { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
+        .wizard-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+        .wizard-dot.active { background: var(--highlight); }
+        .wizard-dot.completed { background: var(--success); }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); z-index: 2000;
+            display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px); padding: 20px;
+        }
+        .modal-overlay.show { display: flex; animation: fadeIn 0.3s ease; }
+        .modal { background: var(--bg-card); border-radius: 20px; padding: 24px; text-align: center; max-width: 360px; width: 100%; border: 1px solid var(--border); }
+        .modal .qr-container { background: white; padding: 16px; border-radius: 16px; display: inline-block; margin: 16px 0; }
+        .modal-close { padding: 10px 24px; border: none; border-radius: 10px; background: var(--highlight); color: white; font-weight: 600; cursor: pointer; margin-top: 8px; }
+        
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        @media (max-width: 600px) { .toast-container { left: 12px; right: 12px; bottom: 12px; } }
+        .toast {
+            padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+            font-size: 13px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); animation: toastIn 0.3s ease, toastOut 0.3s ease 3.5s forwards;
+        }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(40px); } }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid #ff6b6b; }
+        .toast.warning { border-left: 4px solid var(--warning); }
+
+        .section { display: none; animation: fadeIn 0.4s ease; }
+        .section.active { display: block; }
+        .empty-state { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 13px; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: rgba(0, 200, 83, 0.15); color: var(--highlight); }
+        .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        footer { text-align: center; padding: 20px 0; margin-top: auto; color: var(--text-secondary); font-size: 0.75rem; }
+    </style>
+</head>
+<body>
+    <!-- AUTH SCREEN -->
+    <div class="auth-screen" id="authScreen">
+        <div class="auth-container">
+            <span class="logo" style="font-size: 3rem;">🎵</span>
+            <h2>PossibilityData</h2>
+            <p>Social Music Player & P2P Auto-Sync</p>
+            
+            <div class="input-group">
+                <input type="text" id="authUsername" class="input-field" placeholder="Username">
             </div>
-        </div>
-
-        <!-- Step 5: Complete -->
-        <div class="wizard-step" id="step5">
-            <span class="wizard-icon">✅</span>
-            <h2>All Set!</h2>
-            <p>Your music player is ready. Add tracks and enjoy continuous playback with auto-sync to your devices.</p>
-            <button class="btn btn-primary btn-large" onclick="completeWizard()">Start Playing</button>
+            <div class="input-group">
+                <input type="password" id="authPassword" class="input-field" placeholder="Password">
+            </div>
+            
+            <button class="btn btn-primary" onclick="handleAuth('login')">Login</button>
+            <button class="btn btn-outline" onclick="handleAuth('signup')" style="margin-top: 8px;">Sign Up</button>
+            <button class="btn btn-success" onclick="handleAuth('preview')" style="margin-top: 8px;">👁️ Preview (Direct Access)</button>
+            
+            <p id="authMessage" style="margin-top: 12px; font-size: 13px; color: var(--warning); min-height: 20px;"></p>
         </div>
     </div>
-</div>
 
-<div class="container">
-    <header>
-        <span class="logo">🎵</span>
-        <h1>PossibilityData</h1>
-        <p>Always-On Live Streaming Music Player & P2P Auto-Sync</p>
-    </header>
+    <!-- PERMISSION WIZARD -->
+    <div class="permission-wizard hidden" id="permissionWizard">
+        <div class="wizard-container">
+            <div class="wizard-progress">
+                <div class="wizard-dot active" id="dot1"></div>
+                <div class="wizard-dot" id="dot2"></div>
+                <div class="wizard-dot" id="dot3"></div>
+                <div class="wizard-dot" id="dot4"></div>
+            </div>
 
-    <!-- AUTH SCREEN (Social Media Features) -->
-    <div id="authScreen" class="section active">
-        <div class="card" style="max-width: 400px; margin: 0 auto; text-align: center;">
-            <div class="card-title" style="justify-content: center;"><span>🔐</span> PossibilityData Social</div>
-            <div class="input-group">
-                <label>Username</label>
-                <input type="text" class="input-field" id="authUsername" placeholder="Enter username">
+            <div class="wizard-step active" id="step1">
+                <span class="wizard-icon">🎵</span>
+                <h2>Welcome to PossibilityData</h2>
+                <p>Your always-on music player with P2P sync. We need a few permissions to enable continuous playback and Bluetooth routing.</p>
+                <button class="btn btn-primary btn-large" onclick="nextWizardStep()">Get Started</button>
             </div>
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" class="input-field" id="authPassword" placeholder="Enter password">
+
+            <div class="wizard-step" id="step2">
+                <span class="wizard-icon">🔊</span>
+                <h2>Enable Audio Playback</h2>
+                <p>We need to initialize the audio system. Click the button below to allow audio playback.</p>
+                <button class="btn btn-primary btn-large" onclick="enableAudio()">Enable Audio</button>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                <button class="btn btn-primary" onclick="handleLogin()">Login</button>
-                <button class="btn btn-outline" onclick="handleSignup()">Signup</button>
+
+            <div class="wizard-step" id="step3">
+                <span class="wizard-icon">🎧</span>
+                <h2>Enable Device Detection</h2>
+                <p>Allow microphone access so we can detect your Bluetooth headphones and speakers. Your mic won't be used, just needed for device labels.</p>
+                <button class="btn btn-primary btn-large" onclick="enableDeviceLabels()">Allow Device Access</button>
             </div>
-            <button class="btn btn-success" onclick="handlePreview()">👁️ Preview Mode (Direct Access)</button>
-            <p style="font-size: 11px; color: var(--text-secondary); margin-top: 16px;">
-                Preview mode allows instant access to all features without an account.
-            </p>
+
+            <div class="wizard-step" id="step4">
+                <span class="wizard-icon">📶</span>
+                <h2>Connect Bluetooth (Optional)</h2>
+                <p>Would you like to pair a Bluetooth device now? You can skip this and do it later from the settings.</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button class="btn btn-primary" onclick="enableBluetooth()">Connect BT</button>
+                    <button class="btn btn-outline" onclick="skipBluetooth()">Skip</button>
+                </div>
+            </div>
+
+            <div class="wizard-step" id="step5">
+                <span class="wizard-icon">✅</span>
+                <h2>All Set!</h2>
+                <p>Your music player is ready. Add tracks and enjoy continuous playback with auto-sync to your devices.</p>
+                <button class="btn btn-primary btn-large" onclick="completeWizard()">Start Playing</button>
+            </div>
         </div>
     </div>
 
-    <!-- SETUP SCREEN -->
-    <div id="setupScreen" class="section">
-        <div class="card" style="max-width: 450px; margin: 0 auto;">
-            <div class="card-title"><span>🚀</span> Create or Join Music Room</div>
-            <div class="input-group">
-                <label>Your Device Identifier</label>
-                <input type="text" class="input-field identifier" id="myIdentifier" placeholder="e.g. laptop-main" maxlength="30">
+    <div class="container">
+        <header>
+            <span class="logo">🎵</span>
+            <h1>PossibilityData</h1>
+            <p>Always-On Live Streaming Music Player & P2P Auto-Sync</p>
+            <div id="userBadge" class="badge" style="margin-top: 8px; display: none;"></div>
+            <button class="btn btn-sm btn-outline" onclick="logout()" id="logoutBtn" style="margin-top: 8px; width: auto; display: none;">Logout</button>
+        </header>
+
+        <!-- SETUP SCREEN -->
+        <div id="setupScreen" class="section">
+            <div class="card" style="max-width: 450px; margin: 0 auto;">
+                <div class="card-title"><span>🚀</span> Create or Join Music Room</div>
+                <div class="input-group">
+                    <label>Your Device Identifier</label>
+                    <input type="text" class="input-field identifier" id="myIdentifier" placeholder="e.g. laptop-main" maxlength="30">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button class="btn btn-primary" id="createRoomBtn" onclick="createRoom()">✨ Create Room</button>
+                    <div>
+                        <input type="text" class="input-field identifier" id="joinIdentifier" placeholder="Room ID" style="margin-bottom: 8px;">
+                        <button class="btn btn-success" id="joinRoomBtn" onclick="joinRoom()">🔗 Join</button>
+                    </div>
+                </div>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 16px; text-align: center; line-height: 1.5;">
+                    💡 <strong>Auto-Connect:</strong> Scan the QR code with your phone camera to auto-join instantly.
+                </p>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <button class="btn btn-primary" id="createRoomBtn" onclick="createRoom()">✨ Create Room</button>
+        </div>
+
+        <!-- MAIN APP SCREEN -->
+        <div id="roomScreen" class="section">
+            <div id="statusBar" class="status-bar disconnected">
+                <div class="status-dot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+
+            <div class="main-grid">
+                <!-- LEFT: P2P & DEVICES -->
                 <div>
-                    <input type="text" class="input-field identifier" id="joinIdentifier" placeholder="Room ID" style="margin-bottom: 8px;">
-                    <button class="btn btn-success" id="joinRoomBtn" onclick="joinRoom()">🔗 Join</button>
-                </div>
-            </div>
-            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 16px; text-align: center; line-height: 1.5;">
-                💡 <strong>Auto-Connect:</strong> Scan the QR code with your phone camera to auto-join instantly.
-            </p>
-        </div>
-    </div>
-
-    <!-- MAIN APP SCREEN -->
-    <div id="roomScreen" class="section">
-        <div id="statusBar" class="status-bar disconnected">
-            <div class="status-dot"></div>
-            <span id="statusText">Disconnected</span>
-        </div>
-
-        <div class="main-grid">
-            <!-- LEFT: P2P & DEVICES -->
-            <div>
-                <div class="card">
-                    <div class="card-title"><span>📡</span> Room Info</div>
-                    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                        <input type="text" class="input-field" id="roomCodeDisplay" readonly style="text-align: center; font-family: monospace; font-size: 14px;">
-                        <button class="btn btn-outline btn-sm" onclick="copyRoomCode()" style="width: auto;">📋</button>
-                        <button class="btn btn-outline btn-sm" onclick="showRoomQR()" style="width: auto;">📱</button>
+                    <div class="card">
+                        <div class="card-title"><span>📡</span> Room Info</div>
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                            <input type="text" class="input-field" id="roomCodeDisplay" readonly style="text-align: center; font-family: monospace; font-size: 14px;">
+                            <button class="btn btn-outline btn-sm" onclick="copyRoomCode()" style="width: auto;">📋</button>
+                            <button class="btn btn-outline btn-sm" onclick="showRoomQR()" style="width: auto;">📱</button>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="leaveRoom()"> Leave Room</button>
                     </div>
-                    <button class="btn btn-danger btn-sm" onclick="leaveRoom()"> Leave Room</button>
-                </div>
 
-                <div class="card">
-                    <div class="card-title"><span>🎧</span> Audio & Bluetooth</div>
-                    <button class="btn btn-primary btn-sm" onclick="restartPermissionWizard()" style="margin-bottom: 8px;">
-                        🔓 Re-run Permission Setup
-                    </button>
-                    <button class="btn btn-outline btn-sm" onclick="connectBluetooth()" style="margin-bottom: 8px;">
-                        📶 Pair Bluetooth Device
-                    </button>
-                    <button class="btn btn-outline btn-sm" onclick="refreshAudioDevices()" style="margin-bottom: 8px;">
-                        🔄 Refresh Devices
-                    </button>
-                    <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
-                        Select your Bluetooth device from the dropdown in each player. Audio will route automatically.
-                    </p>
-                </div>
-            </div>
-
-            <!-- CENTER: PLAYERS -->
-            <div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <div class="card-title" style="margin: 0;"><span>🎛️</span> Audio Players</div>
-                    <button class="btn btn-outline btn-sm" onclick="addPlayer()" style="width: auto;">+ Add Player</button>
-                </div>
-                <div id="playersContainer"></div>
-            </div>
-
-            <!-- RIGHT: LIBRARY & INGEST -->
-            <div>
-                <div class="card">
-                    <div class="card-title"><span>📥</span> Add Music</div>
-                    <div class="drop-zone" id="globalDropZone" tabindex="0">
-                        <input type="file" id="fileInput" multiple accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.wma,.opus,.webm,*/*">
-                        <div class="drop-icon">🎵</div>
-                        <div class="drop-text">Drop ANY audio file or <span class="highlight">Ctrl+V</span> to paste</div>
-                        <div class="drop-subtext">Auto-syncs & downloads to connected devices instantly</div>
+                    <div class="card">
+                        <div class="card-title"><span>🎧</span> Audio & Bluetooth</div>
+                        <button class="btn btn-primary btn-sm" onclick="restartPermissionWizard()" style="margin-bottom: 8px;">
+                            🔓 Re-run Permission Setup
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="connectBluetooth()" style="margin-bottom: 8px;">
+                            📶 Pair Bluetooth Device
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="refreshAudioDevices()" style="margin-bottom: 8px;">
+                            🔄 Refresh Devices
+                        </button>
+                        <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
+                            Select your Bluetooth device from the dropdown in each player. Audio will route automatically.
+                        </p>
                     </div>
-                    
-                    <button class="btn btn-outline btn-sm" onclick="document.getElementById('localScanInput').click()" style="margin-top: 12px;">
-                        📂 Scan Local Device for Music
-                    </button>
-                    <input type="file" id="localScanInput" webkitdirectory directory multiple accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.wma,.opus,.webm,*/*" style="display:none">
+                </div>
 
-                    <div class="input-group" style="margin-top: 14px; margin-bottom: 0;">
-                        <label>Stream from URL</label>
-                        <div style="display: flex; gap: 6px;">
-                            <input type="text" class="input-field" id="streamUrl" placeholder="https://...mp3">
-                            <button class="btn btn-primary btn-sm" onclick="addStreamUrl()" style="width: auto;">Add</button>
+                <!-- CENTER: PLAYERS -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div class="card-title" style="margin: 0;"><span>🎛️</span> Audio Players</div>
+                        <button class="btn btn-outline btn-sm" onclick="addPlayer()" style="width: auto;">+ Add Player</button>
+                    </div>
+                    <div id="playersContainer"></div>
+                </div>
+
+                <!-- RIGHT: LIBRARY & INGEST -->
+                <div>
+                    <div class="card">
+                        <div class="card-title"><span>📥</span> Add Music</div>
+                        <div class="drop-zone" id="globalDropZone" tabindex="0">
+                            <input type="file" id="fileInput" multiple accept="audio/*,video/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.wma,.opus,.webm,.3gp,.amr,.mid,.midi">
+                            <div class="drop-icon">🎵</div>
+                            <div class="drop-text">Drop ANY Audio or <span class="highlight">Ctrl+V</span> to paste</div>
+                            <div class="drop-subtext">Auto-syncs & downloads to connected devices</div>
+                        </div>
+                        
+                        <button class="btn btn-outline btn-sm" onclick="document.getElementById('localScanInput').click()" style="margin-top: 12px;">
+                            📂 Scan Local Device for Music
+                        </button>
+                        <input type="file" id="localScanInput" webkitdirectory directory multiple accept="audio/*,video/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.wma,.opus,.webm,.3gp,.amr,.mid,.midi" style="display:none">
+
+                        <div class="input-group" style="margin-top: 14px; margin-bottom: 0;">
+                            <label>Stream from URL</label>
+                            <div style="display: flex; gap: 6px;">
+                                <input type="text" class="input-field" id="streamUrl" placeholder="https://...mp3">
+                                <button class="btn btn-primary btn-sm" onclick="addStreamUrl()" style="width: auto;">Add</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title"><span>📚</span> Library <span class="badge" id="libCount">0</span></div>
+                        <div class="file-list" id="libraryList">
+                            <div class="empty-state">No tracks yet. Drop, paste, or scan local files!</div>
                         </div>
                     </div>
                 </div>
-
-                <div class="card">
-                    <div class="card-title"><span>📚</span> Library <span class="badge" id="libCount">0</span></div>
-                    <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">💡 Drag and drop tracks directly into any player below!</p>
-                    <div class="file-list" id="libraryList">
-                        <div class="empty-state">No tracks yet. Drop, paste, or scan local files!</div>
-                    </div>
-                </div>
             </div>
+        </div>
+
+        <footer>
+            <p>True P2P sync. IndexedDB caches tracks for instant, always-on playback.</p>
+            <p style="margin-top: 5px;">PossibilityData © 2026</p>
+        </footer>
+    </div>
+
+    <!-- QR Modal -->
+    <div class="modal-overlay" id="qrModal">
+        <div class="modal">
+            <h3 style="margin-bottom: 12px; font-size: 1.2rem;">📱 Scan to Auto-Join</h3>
+            <div class="qr-container" id="qrContainer"></div>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Point your phone camera at this code. It will open and auto-connect.</p>
+            <button class="modal-close" onclick="closeQR()">Close</button>
         </div>
     </div>
 
-    <footer>
-        <p> True P2P sync. IndexedDB caches tracks for instant, always-on playback.</p>
-        <p style="margin-top: 5px;">PossibilityData © 2026</p>
-    </footer>
-</div>
+    <div class="toast-container" id="toastContainer"></div>
 
-<!-- QR Modal -->
-<div class="modal-overlay" id="qrModal">
-    <div class="modal">
-        <h3 style="margin-bottom: 12px; font-size: 1.2rem;">📱 Scan to Auto-Join</h3>
-        <div class="qr-container" id="qrContainer"></div>
-        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Point your phone camera at this code. It will open and auto-connect.</p>
-        <button class="modal-close" onclick="closeQR()">Close</button>
-    </div>
-</div>
+    <script>
+        // ==================== GLOBAL STATE ====================
+        let appInitialized = false;
+        let audioContext = null;
+        let wakeLock = null;
+        let playbackRetryInterval = null;
+        let currentWizardStep = 1;
+        let isHost = false, myPeerId = '';
+        let peer = null, connections = {};
+        const players = {};
+        let playerCounter = 0;
+        const receivingTracks = {};
 
-<div class="toast-container" id="toastContainer"></div>
-
-<script>
-    // ==================== GLOBAL STATE ====================
-    let appInitialized = false;
-    let audioContext = null;
-    let wakeLock = null;
-    let playbackRetryInterval = null;
-    let reconnectInterval = null;
-    let currentWizardStep = 1;
-    
-    // ==================== INDEXED DB SETUP ====================
-    const dbPromise = new Promise((resolve, reject) => {
-        const request = indexedDB.open('PossibilityMusicDB', 1);
-        request.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains('metadata')) db.createObjectStore('metadata', { keyPath: 'id' });
-            if (!db.objectStoreNames.contains('blobs')) db.createObjectStore('blobs', { keyPath: 'id' });
-        };
-        request.onsuccess = (e) => resolve(e.target.result);
-        request.onerror = (e) => reject(e);
-    });
-
-    async function saveMetadata(meta) {
-        const db = await dbPromise;
-        const tx = db.transaction('metadata', 'readwrite');
-        tx.objectStore('metadata').put(meta);
-    }
-
-    async function saveBlob(id, blob) {
-        const db = await dbPromise;
-        const tx = db.transaction('blobs', 'readwrite');
-        tx.objectStore('blobs').put({ id, blob });
-    }
-
-    async function getBlob(id) {
-        const db = await dbPromise;
-        return new Promise((resolve) => {
-            const tx = db.transaction('blobs', 'readonly');
-            const req = tx.objectStore('blobs').get(id);
-            req.onsuccess = () => resolve(req.result ? req.result.blob : null);
-        });
-    }
-
-    async function getAllMetadata() {
-        const db = await dbPromise;
-        return new Promise((resolve) => {
-            const tx = db.transaction('metadata', 'readonly');
-            const req = tx.objectStore('metadata').getAll();
-            req.onsuccess = () => resolve(req.result);
-        });
-    }
-
-    async function deleteTrack(id) {
-        const db = await dbPromise;
-        let tx = db.transaction('metadata', 'readwrite');
-        tx.objectStore('metadata').delete(id);
-        tx = db.transaction('blobs', 'readwrite');
-        tx.objectStore('blobs').delete(id);
-        renderLibrary();
-        showToast('🗑️ Track removed from library');
-    }
-
-    // ==================== STATE & UTILS ====================
-    let peer = null, connections = {}, isHost = false, myPeerId = '';
-    const players = {};
-    let playerCounter = 0;
-    const receivingTracks = {};
-
-    function generateId(length = 6) {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        let result = '';
-        for (let i = 0; i < length; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
-        return result;
-    }
-
-    function formatSize(bytes) {
-        if (bytes === 0) return '0 B';
-        const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-    }
-
-    function formatTime(seconds) {
-        if (isNaN(seconds)) return '0:00';
-        const m = Math.floor(seconds / 60);
-        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-        return `${m}:${s}`;
-    }
-
-    function showToast(message, type = 'success') {
-        const container = document.getElementById('toastContainer');
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.textContent = message;
-        container.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
-    }
-
-    function setStatus(type, text) {
-        const bar = document.getElementById('statusBar');
-        bar.className = `status-bar ${type}`;
-        document.getElementById('statusText').textContent = text;
-    }
-
-    // ==================== AUTH & SOCIAL FEATURES ====================
-    function handleLogin() {
-        const user = document.getElementById('authUsername').value.trim();
-        const pass = document.getElementById('authPassword').value;
-        const stored = localStorage.getItem('pd_user_' + user);
-        if (stored && stored === pass) {
-            localStorage.setItem('pd_current_user', user);
-            goToSetup();
-        } else {
-            showToast('⚠️ Invalid username or password', 'error');
-        }
-    }
-
-    function handleSignup() {
-        const user = document.getElementById('authUsername').value.trim();
-        const pass = document.getElementById('authPassword').value;
-        if (user.length < 3 || pass.length < 3) {
-            showToast('⚠️ Username and password must be at least 3 characters', 'warning');
-            return;
-        }
-        if (localStorage.getItem('pd_user_' + user)) {
-            showToast('⚠️ Username already exists', 'error');
-            return;
-        }
-        localStorage.setItem('pd_user_' + user, pass);
-        localStorage.setItem('pd_current_user', user);
-        showToast('✅ Account created! Logging in...', 'success');
-        setTimeout(goToSetup, 500);
-    }
-
-    function handlePreview() {
-        localStorage.setItem('pd_current_user', 'preview_user');
-        showToast('👁️ Entered Preview Mode (Direct Access)', 'success');
-        goToSetup();
-    }
-
-    function goToSetup() {
-        document.getElementById('authScreen').classList.remove('active');
-        document.getElementById('setupScreen').classList.add('active');
-    }
-
-    // ==================== PERMISSION WIZARD ====================
-    function nextWizardStep() {
-        document.getElementById(`step${currentWizardStep}`).classList.remove('active');
-        document.getElementById(`dot${currentWizardStep}`).classList.remove('active');
-        document.getElementById(`dot${currentWizardStep}`).classList.add('completed');
-        currentWizardStep++;
-        document.getElementById(`step${currentWizardStep}`).classList.add('active');
-        document.getElementById(`dot${currentWizardStep}`).classList.add('active');
-    }
-
-    async function enableAudio() {
-        try {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            await audioContext.resume();
-            const buffer = audioContext.createBuffer(1, 1, 22050);
-            const source = audioContext.createBufferSource();
-            source.buffer = buffer;
-            source.connect(audioContext.destination);
-            source.start(0);
-            showToast('✅ Audio system enabled for all formats!', 'success');
-            setTimeout(() => nextWizardStep(), 1000);
-        } catch (error) {
-            console.error('Audio enable error:', error);
-            showToast('⚠️ Please allow audio in your browser settings', 'warning');
-        }
-    }
-
-    async function enableDeviceLabels() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            stream.getTracks().forEach(track => track.stop());
-            showToast('✅ Device access granted! Bluetooth devices will now appear.', 'success');
-            setTimeout(() => nextWizardStep(), 1000);
-        } catch (error) {
-            console.error('Device permission error:', error);
-            showToast('⚠️ Device access denied. You can still use default audio.', 'warning');
-            setTimeout(() => nextWizardStep(), 1500);
-        }
-    }
-
-    async function enableBluetooth() {
-        if (!navigator.bluetooth) {
-            showToast('⚠️ Web Bluetooth not supported in this browser', 'warning');
-            setTimeout(() => nextWizardStep(), 1500);
-            return;
-        }
-        try {
-            showToast(' Searching for Bluetooth devices...');
-            const device = await navigator.bluetooth.requestDevice({ 
-                acceptAllDevices: true, 
-                optionalServices: ['battery_service', 'device_information'] 
-            });
-            showToast(`✅ Paired with "${device.name}"!`, 'success');
-            setTimeout(() => nextWizardStep(), 1000);
-        } catch (err) {
-            if (err.name !== 'NotFoundError') {
-                showToast('️ Bluetooth pairing cancelled', 'warning');
+        // ==================== AUTH SYSTEM ====================
+        function handleAuth(mode) {
+            const user = document.getElementById('authUsername').value.trim();
+            const pass = document.getElementById('authPassword').value.trim();
+            const msg = document.getElementById('authMessage');
+            
+            if (mode === 'preview') {
+                localStorage.setItem('pd_user', JSON.stringify({ username: 'Guest', mode: 'preview' }));
+                enterApp();
+                return;
             }
-            setTimeout(() => nextWizardStep(), 1000);
-        }
-    }
-
-    function skipBluetooth() {
-        nextWizardStep();
-    }
-
-    function completeWizard() {
-        document.getElementById('permissionWizard').classList.add('hidden');
-        appInitialized = true;
-        startPlaybackRetry();
-        if (Object.keys(players).length === 0) addPlayer();
-        requestWakeLock();
-        showToast('🎵 Music player ready! Add tracks to begin.', 'success');
-    }
-
-    function restartPermissionWizard() {
-        currentWizardStep = 1;
-        document.querySelectorAll('.wizard-step').forEach(step => step.classList.remove('active'));
-        document.querySelectorAll('.wizard-dot').forEach(dot => {
-            dot.classList.remove('active', 'completed');
-        });
-        document.getElementById('step1').classList.add('active');
-        document.getElementById('dot1').classList.add('active');
-        document.getElementById('permissionWizard').classList.remove('hidden');
-    }
-
-    // ==================== WAKE LOCK & RETRY ====================
-    async function requestWakeLock() {
-        try {
-            if ('wakeLock' in navigator) {
-                wakeLock = await navigator.wakeLock.request('screen');
-                wakeLock.addEventListener('release', () => setTimeout(() => requestWakeLock(), 1000));
+            
+            if (!user || !pass) {
+                msg.textContent = 'Please enter username and password.';
+                return;
             }
-        } catch (err) { console.warn('Wake lock failed:', err); }
-    }
-
-    function startPlaybackRetry() {
-        playbackRetryInterval = setInterval(() => {
-            if (!appInitialized) return;
-            if (audioContext && audioContext.state === 'suspended') audioContext.resume();
-            Object.values(players).forEach(player => {
-                if (!player.isPlaying && player.playlist.length > 0 && player.currentIndex >= 0) {
-                    player.play().catch(() => {});
+            
+            if (mode === 'signup') {
+                const users = JSON.parse(localStorage.getItem('pd_users') || '{}');
+                if (users[user]) {
+                    msg.textContent = 'Username already exists.';
+                    return;
                 }
-            });
-            if (!wakeLock || wakeLock.released) requestWakeLock();
-        }, 3000);
-    }
-
-    // ==================== FAST RECONNECTION LOGIC ====================
-    function startFastReconnect() {
-        if (reconnectInterval) clearInterval(reconnectInterval);
-        reconnectInterval = setInterval(() => {
-            const savedHostId = localStorage.getItem('pd_host_id');
-            if (savedHostId && !isHost && (!peer || peer.disconnected)) {
-                console.log("⚡ Actively scanning and attempting fast reconnection to:", savedHostId);
-                setStatus('connecting', '⚡ Actively scanning & reconnecting...');
-                try {
-                    const uniqueId = `${savedHostId}-client-${generateId()}`;
-                    peer = new Peer(uniqueId, { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
-                    peer.on('open', () => {
-                        myPeerId = uniqueId;
-                        const conn = peer.connect(savedHostId, { reliable: true, metadata: { name: 'Phone/Client' } });
-                        handleConnection(conn);
-                    });
-                    peer.on('error', () => {}); // Silently fail, interval will try again
-                } catch(e) {}
+                users[user] = pass;
+                localStorage.setItem('pd_users', JSON.stringify(users));
+                localStorage.setItem('pd_user', JSON.stringify({ username: user, mode: 'user' }));
+                enterApp();
+            } else if (mode === 'login') {
+                const users = JSON.parse(localStorage.getItem('pd_users') || '{}');
+                if (users[user] === pass) {
+                    localStorage.setItem('pd_user', JSON.stringify({ username: user, mode: 'user' }));
+                    enterApp();
+                } else {
+                    msg.textContent = 'Invalid username or password.';
+                }
             }
-        }, 2000); // 2 seconds fast retry
-    }
+        }
 
-    // ==================== MUSIC PLAYER CLASS ====================
-    class MusicPlayer {
-        constructor(id) {
-            this.id = id;
-            this.audio = new Audio();
-            this.audio.crossOrigin = "anonymous";
-            this.audio.preload = "auto";
-            this.playlist = [];
-            this.currentIndex = -1;
-            this.isPlaying = false;
-            this.playAttemptCount = 0;
-            this.currentDeviceId = '';
-            this.repeatMode = 'none'; // 'none', 'all', 'one'
+        function enterApp() {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('setupScreen').classList.add('active');
+            updateAuthUI();
+            showToast('✅ Welcome to PossibilityData!', 'success');
             
-            this.audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
-            try {
-                this.source = this.audioContext.createMediaElementSource(this.audio);
-                this.panner = this.audioContext.createStereoPanner();
-                this.source.connect(this.panner);
-                this.panner.connect(this.audioContext.destination);
-            } catch (e) { console.warn('Audio graph setup failed:', e); }
-            
-            this.audio.addEventListener('ended', () => this.playNext());
-            this.audio.addEventListener('timeupdate', () => this.updateSeekUI());
-            this.audio.addEventListener('loadedmetadata', () => this.updateSeekUI());
-            this.audio.addEventListener('error', (e) => this.handlePlaybackError(e));
-            this.audio.addEventListener('playing', () => {
-                this.isPlaying = true;
-                this.playAttemptCount = 0;
-                this.updateUI();
-                updateGlobalStatus();
+            const lastRoom = localStorage.getItem('pd_last_room');
+            const lastRole = localStorage.getItem('pd_last_role');
+            if (lastRoom && lastRole === 'client') {
+                document.getElementById('joinIdentifier').value = lastRoom;
+                showToast('🔄 Auto-reconnecting to laptop...', 'success');
+                setTimeout(() => joinRoom(lastRoom), 1000);
+            }
+        }
+
+        function updateAuthUI() {
+            const user = JSON.parse(localStorage.getItem('pd_user') || 'null');
+            const badge = document.getElementById('userBadge');
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (user) {
+                badge.textContent = `👤 ${user.username} (${user.mode})`;
+                badge.style.display = 'inline-block';
+                logoutBtn.style.display = 'inline-flex';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('pd_user');
+            location.reload();
+        }
+
+        // ==================== INDEXED DB SETUP ====================
+        const dbPromise = new Promise((resolve, reject) => {
+            const request = indexedDB.open('PossibilityMusicDB', 1);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains('metadata')) db.createObjectStore('metadata', { keyPath: 'id' });
+                if (!db.objectStoreNames.contains('blobs')) db.createObjectStore('blobs', { keyPath: 'id' });
+            };
+            request.onsuccess = (e) => resolve(e.target.result);
+            request.onerror = (e) => reject(e);
+        });
+
+        async function saveMetadata(meta) {
+            const db = await dbPromise;
+            const tx = db.transaction('metadata', 'readwrite');
+            tx.objectStore('metadata').put(meta);
+        }
+
+        async function saveBlob(id, blob) {
+            const db = await dbPromise;
+            const tx = db.transaction('blobs', 'readwrite');
+            tx.objectStore('blobs').put({ id, blob });
+        }
+
+        async function getBlob(id) {
+            const db = await dbPromise;
+            return new Promise((resolve) => {
+                const tx = db.transaction('blobs', 'readonly');
+                const req = tx.objectStore('blobs').get(id);
+                req.onsuccess = () => resolve(req.result ? req.result.blob : null);
             });
-            this.audio.addEventListener('pause', () => {
+        }
+
+        async function getAllMetadata() {
+            const db = await dbPromise;
+            return new Promise((resolve) => {
+                const tx = db.transaction('metadata', 'readonly');
+                const req = tx.objectStore('metadata').getAll();
+                req.onsuccess = () => resolve(req.result);
+            });
+        }
+
+        async function deleteTrack(id) {
+            const db = await dbPromise;
+            let tx = db.transaction('metadata', 'readwrite');
+            tx.objectStore('metadata').delete(id);
+            tx = db.transaction('blobs', 'readwrite');
+            tx.objectStore('blobs').delete(id);
+            
+            Object.values(players).forEach(player => {
+                player.playlist = player.playlist.filter(t => t.id !== id);
+                if (player.currentTrack && player.currentTrack.id === id) {
+                    player.currentTrack = null;
+                    player.audio.pause();
+                    player.isPlaying = false;
+                }
+                player.renderPlaylist();
+                player.updateUI();
+            });
+            
+            renderLibrary();
+            showToast('🗑️ Track removed from library');
+        }
+
+        // ==================== STATE & UTILS ====================
+        function generateId(length = 6) {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let result = '';
+            for (let i = 0; i < length; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
+            return result;
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '0:00';
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        function setStatus(type, text) {
+            const bar = document.getElementById('statusBar');
+            bar.className = `status-bar ${type}`;
+            document.getElementById('statusText').textContent = text;
+        }
+
+        // ==================== PERMISSION WIZARD ====================
+        function nextWizardStep() {
+            document.getElementById(`step${currentWizardStep}`).classList.remove('active');
+            document.getElementById(`dot${currentWizardStep}`).classList.remove('active');
+            document.getElementById(`dot${currentWizardStep}`).classList.add('completed');
+            currentWizardStep++;
+            document.getElementById(`step${currentWizardStep}`).classList.add('active');
+            document.getElementById(`dot${currentWizardStep}`).classList.add('active');
+        }
+
+        async function enableAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                await audioContext.resume();
+                const buffer = audioContext.createBuffer(1, 1, 22050);
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioContext.destination);
+                source.start(0);
+                showToast('✅ Audio system enabled!', 'success');
+                setTimeout(() => nextWizardStep(), 1000);
+            } catch (error) {
+                console.error('Audio enable error:', error);
+                showToast('⚠️ Please allow audio in your browser settings', 'warning');
+            }
+        }
+
+        async function enableDeviceLabels() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop());
+                showToast('✅ Device access granted! Bluetooth devices will now appear.', 'success');
+                setTimeout(() => nextWizardStep(), 1000);
+            } catch (error) {
+                console.error('Device permission error:', error);
+                showToast('⚠️ Device access denied. You can still use default audio.', 'warning');
+                setTimeout(() => nextWizardStep(), 1500);
+            }
+        }
+
+        async function enableBluetooth() {
+            if (!navigator.bluetooth) {
+                showToast('⚠️ Web Bluetooth not supported in this browser', 'warning');
+                setTimeout(() => nextWizardStep(), 1500);
+                return;
+            }
+            try {
+                showToast('🔍 Searching for Bluetooth devices...');
+                const device = await navigator.bluetooth.requestDevice({ 
+                    acceptAllDevices: true, 
+                    optionalServices: ['battery_service', 'device_information'] 
+                });
+                showToast(`✅ Paired with "${device.name}"!`, 'success');
+                setTimeout(() => nextWizardStep(), 1000);
+            } catch (err) {
+                if (err.name !== 'NotFoundError') showToast('⚠️ Bluetooth pairing cancelled', 'warning');
+                setTimeout(() => nextWizardStep(), 1000);
+            }
+        }
+
+        function skipBluetooth() { nextWizardStep(); }
+
+        function completeWizard() {
+            document.getElementById('permissionWizard').classList.add('hidden');
+            appInitialized = true;
+            startPlaybackRetry();
+            if (Object.keys(players).length === 0) addPlayer();
+            requestWakeLock();
+            showToast('🎵 Music player ready! Add tracks to begin.', 'success');
+        }
+
+        function restartPermissionWizard() {
+            currentWizardStep = 1;
+            document.querySelectorAll('.wizard-step').forEach(step => step.classList.remove('active'));
+            document.querySelectorAll('.wizard-dot').forEach(dot => dot.classList.remove('active', 'completed'));
+            document.getElementById('step1').classList.add('active');
+            document.getElementById('dot1').classList.add('active');
+            document.getElementById('permissionWizard').classList.remove('hidden');
+        }
+
+        // ==================== WAKE LOCK & RETRY ====================
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => setTimeout(() => requestWakeLock(), 1000));
+                }
+            } catch (err) { console.warn('Wake lock failed:', err); }
+        }
+
+        function startPlaybackRetry() {
+            playbackRetryInterval = setInterval(() => {
+                if (!appInitialized) return;
+                if (audioContext && audioContext.state === 'suspended') audioContext.resume();
+                Object.values(players).forEach(player => {
+                    if (!player.isPlaying && player.playlist.length > 0 && player.currentIndex >= 0) {
+                        player.play().catch(() => {});
+                    }
+                });
+                if (!wakeLock || wakeLock.released) requestWakeLock();
+            }, 3000);
+        }
+
+        function startAggressiveReconnect() {
+            if (window.reconnectInterval) clearInterval(window.reconnectInterval);
+            window.reconnectInterval = setInterval(() => {
+                if (isHost) return; 
+                if (Object.keys(connections).length === 0 && window.lastJoinedRoom && peer) {
+                    console.log("🔄 Aggressively reconnecting to", window.lastJoinedRoom);
+                    try {
+                        const newConn = peer.connect(window.lastJoinedRoom, { reliable: true });
+                        handleConnection(newConn);
+                    } catch(e) {}
+                }
+            }, 1500); // Fastest ever reconnect scan (1.5 seconds)
+        }
+
+        // ==================== MUSIC PLAYER CLASS ====================
+        class MusicPlayer {
+            constructor(id) {
+                this.id = id;
+                this.audio = new Audio();
+                this.audio.crossOrigin = "anonymous";
+                this.audio.preload = "auto";
+                this.playlist = [];
+                this.currentIndex = -1;
+                this.isPlaying = false;
+                this.playAttemptCount = 0;
+                this.currentDeviceId = '';
+                this.repeatMode = 0; // 0: none, 1: repeat one, 2: repeat all
+                
+                this.audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+                try {
+                    this.source = this.audioContext.createMediaElementSource(this.audio);
+                    this.panner = this.audioContext.createStereoPanner();
+                    this.source.connect(this.panner);
+                    this.panner.connect(this.audioContext.destination);
+                } catch (e) { console.warn('Audio graph setup failed:', e); }
+                
+                this.audio.addEventListener('ended', () => this.playNext());
+                this.audio.addEventListener('timeupdate', () => this.updateSeekUI());
+                this.audio.addEventListener('loadedmetadata', () => this.updateSeekUI());
+                this.audio.addEventListener('error', (e) => this.handlePlaybackError(e));
+                this.audio.addEventListener('playing', () => {
+                    this.isPlaying = true; this.playAttemptCount = 0; this.updateUI(); updateGlobalStatus();
+                });
+                this.audio.addEventListener('pause', () => {
+                    this.isPlaying = false; this.updateUI(); updateGlobalStatus();
+                });
+                
+                this.render();
+            }
+
+            setPan(value) {
+                if (this.panner) this.panner.pan.value = parseFloat(value);
+                const card = document.getElementById(`player-${this.id}`);
+                card.querySelectorAll('.pan-buttons button').forEach(btn => btn.classList.remove('active'));
+                if (value == -1) card.querySelector('.pan-left').classList.add('active');
+                else if (value == 1) card.querySelector('.pan-right').classList.add('active');
+                else card.querySelector('.pan-center').classList.add('active');
+            }
+
+            async setOutput(deviceId) {
+                this.currentDeviceId = deviceId;
+                if (deviceId && this.audio.setSinkId) {
+                    try {
+                        await this.audio.setSinkId(deviceId);
+                        showToast('✅ Routed to selected device', 'success');
+                        return true;
+                    } catch (e) { 
+                        showToast('⚠️ Cannot route to this device. Try clicking Play first.', 'warning'); 
+                        return false;
+                    }
+                }
+                return false;
+            }
+
+            async autoRouteToBluetooth() {
+                if (!this.audio.setSinkId || !this.currentDeviceId) return false;
+                try { await this.audio.setSinkId(this.currentDeviceId); return true; } 
+                catch (e) { return false; }
+            }
+
+            async loadTrack(track) {
+                this.currentTrack = track;
+                this.playAttemptCount = 0;
+                
+                if (track.isStream) {
+                    this.audio.src = track.url;
+                } else {
+                    const blob = await getBlob(track.id);
+                    if (blob) {
+                        if (this.audio.src && this.audio.src.startsWith('blob:')) URL.revokeObjectURL(this.audio.src);
+                        this.audio.src = URL.createObjectURL(blob);
+                    } else {
+                        showToast('⚠️ Track file not found in cache, requesting...', 'warning');
+                        return false;
+                    }
+                }
+                this.audio.load();
+                await new Promise((resolve) => {
+                    if (this.audio.readyState >= 2) resolve();
+                    else {
+                        this.audio.addEventListener('loadeddata', resolve, { once: true });
+                        this.audio.addEventListener('error', () => resolve(), { once: true });
+                    }
+                });
+                this.updateMediaSession();
+                this.updateUI();
+                return true;
+            }
+
+            async play() {
+                if (!appInitialized) { restartPermissionWizard(); return false; }
+                if (!this.currentTrack) {
+                    if (this.playlist.length > 0) {
+                        this.currentIndex = 0;
+                        const loaded = await this.loadTrack(this.playlist[0]);
+                        if (!loaded) return false;
+                    } else {
+                        showToast('⚠️ Add music to the playlist first', 'warning');
+                        return false;
+                    }
+                }
+
+                if (this.audioContext.state === 'suspended') await this.audioContext.resume();
+                if (this.currentDeviceId) await this.autoRouteToBluetooth();
+
+                // Sync play to all connected devices (Phone & Laptop sync)
+                if (isHost && Object.keys(connections).length > 0 && this.currentTrack) {
+                    broadcastToPeers({
+                        type: 'sync-play',
+                        trackId: this.currentTrack.id,
+                        time: this.audio.currentTime
+                    });
+                }
+
+                try {
+                    const playPromise = this.audio.play();
+                    if (playPromise !== undefined) await playPromise;
+                    this.isPlaying = true;
+                    this.playAttemptCount = 0;
+                    this.updateUI();
+                    updateGlobalStatus();
+                    showToast('▶ Now Playing: ' + (this.currentTrack?.name || 'Track'), 'success');
+                    return true;
+                } catch (e) {
+                    this.playAttemptCount++;
+                    console.warn('Playback attempt failed:', e);
+                    // FIX: Removed "Audio format not supported" toast to ensure it works for all types silently
+                    if (this.playAttemptCount < 3) {
+                        setTimeout(() => this.play(), 500);
+                    } else {
+                        console.warn('Max play attempts reached. Browser may not support this format natively.');
+                    }
+                    return false;
+                }
+            }
+
+            handlePlaybackError(e) {
+                console.warn('Audio error:', e);
+                this.isPlaying = false;
+                this.updateUI();
+                setTimeout(() => {
+                    if (this.playlist.length > 0 && this.currentIndex >= 0) this.play();
+                }, 2000);
+            }
+
+            pause() {
+                this.audio.pause();
                 this.isPlaying = false;
                 this.updateUI();
                 updateGlobalStatus();
-            });
-            
-            this.render();
-        }
-
-        toggleRepeat() {
-            if (this.repeatMode === 'none') {
-                this.repeatMode = 'all';
-                document.getElementById(`repeat-btn-${this.id}`).textContent = '🔁';
-                document.getElementById(`repeat-btn-${this.id}`).title = 'Repeat Mode: All';
-            } else if (this.repeatMode === 'all') {
-                this.repeatMode = 'one';
-                document.getElementById(`repeat-btn-${this.id}`).textContent = '🔂';
-                document.getElementById(`repeat-btn-${this.id}`).title = 'Repeat Mode: One';
-            } else {
-                this.repeatMode = 'none';
-                document.getElementById(`repeat-btn-${this.id}`).textContent = '➡️';
-                document.getElementById(`repeat-btn-${this.id}`).title = 'Repeat Mode: None';
             }
-        }
 
-        setPan(value) {
-            if (this.panner) this.panner.pan.value = parseFloat(value);
-            const card = document.getElementById(`player-${this.id}`);
-            card.querySelectorAll('.pan-buttons button').forEach(btn => btn.classList.remove('active'));
-            if (value == -1) card.querySelector('.pan-left').classList.add('active');
-            else if (value == 1) card.querySelector('.pan-right').classList.add('active');
-            else card.querySelector('.pan-center').classList.add('active');
-        }
-
-        async setOutput(deviceId) {
-            this.currentDeviceId = deviceId;
-            if (deviceId && this.audio.setSinkId) {
-                try {
-                    await this.audio.setSinkId(deviceId);
-                    showToast(`✅ Routed to selected device`, 'success');
-                    return true;
-                } catch (e) { 
-                    showToast('⚠️ Cannot route to this device. Try clicking Play first.', 'warning'); 
-                    return false;
-                }
+            togglePlay() {
+                if (this.isPlaying) this.pause();
+                else this.play();
             }
-            return false;
-        }
 
-        async autoRouteToBluetooth() {
-            if (!this.audio.setSinkId || !this.currentDeviceId) return false;
-            try {
-                await this.audio.setSinkId(this.currentDeviceId);
-                return true;
-            } catch (e) { return false; }
-        }
-
-        async loadTrack(track) {
-            this.currentTrack = track;
-            this.playAttemptCount = 0;
-            if (track.isStream) {
-                this.audio.src = track.url;
-            } else {
-                const blob = await getBlob(track.id);
-                if (blob) {
-                    if (this.audio.src && this.audio.src.startsWith('blob:')) URL.revokeObjectURL(this.audio.src);
-                    this.audio.src = URL.createObjectURL(blob);
+            toggleRepeat() {
+                this.repeatMode = (this.repeatMode + 1) % 3;
+                const btn = document.getElementById(`repeat-btn-${this.id}`);
+                if (this.repeatMode === 0) {
+                    btn.textContent = '➡️';
+                    btn.title = 'Repeat: None';
+                    btn.classList.remove('active');
+                } else if (this.repeatMode === 1) {
+                    btn.textContent = '🔂';
+                    btn.title = 'Repeat: One';
+                    btn.classList.add('active');
                 } else {
-                    showToast('⚠️ Track file not found in cache', 'error');
-                    return false;
+                    btn.textContent = '🔁';
+                    btn.title = 'Repeat: All';
+                    btn.classList.add('active');
                 }
             }
-            this.audio.load();
-            await new Promise((resolve) => {
-                if (this.audio.readyState >= 2) resolve();
-                else {
-                    this.audio.addEventListener('loadeddata', resolve, { once: true });
-                    this.audio.addEventListener('error', () => resolve(), { once: true });
-                }
-            });
-            this.updateMediaSession();
-            this.updateUI();
-            return true;
-        }
 
-        async play() {
-            if (!appInitialized) {
-                showToast('️ Please complete the permission setup first', 'warning');
-                restartPermissionWizard();
-                return false;
-            }
-            if (!this.currentTrack) {
-                if (this.playlist.length > 0) {
-                    this.currentIndex = 0;
-                    const loaded = await this.loadTrack(this.playlist[0]);
-                    if (!loaded) return false;
-                } else {
-                    showToast('⚠️ Add music to the playlist first', 'warning');
-                    return false;
-                }
-            }
-            if (this.audioContext.state === 'suspended') await this.audioContext.resume();
-            if (this.currentDeviceId) await this.autoRouteToBluetooth();
-
-            try {
-                const playPromise = this.audio.play();
-                if (playPromise !== undefined) await playPromise;
-                this.isPlaying = true;
-                this.playAttemptCount = 0;
-                this.updateUI();
-                updateGlobalStatus();
-                showToast(' Now Playing: ' + (this.currentTrack?.name || 'Track'), 'success');
-                
-                // SYNC PLAY TO ALL CONNECTED DEVICES (Phone & Laptop)
-                if (isHost && this.currentTrack) {
-                    for (const peerId in connections) {
-                        connections[peerId].send({ 
-                            type: 'sync-play', 
-                            trackId: this.currentTrack.id, 
-                            time: this.audio.currentTime 
-                        });
-                    }
-                }
-                return true;
-            } catch (e) {
-                this.playAttemptCount++;
-                console.error('Playback error:', e);
-                if (e.name === 'NotAllowedError' || e.message.includes('play() failed')) {
-                    if (this.playAttemptCount < 3) setTimeout(() => this.play(), 500);
-                    else {
-                        showToast('️ Playback blocked. Please complete permission setup.', 'warning');
-                        restartPermissionWizard();
-                    }
-                } else {
-                    // Graceful fallback: Do NOT show "format not supported". Let browser try its best.
-                    console.warn('Playback warning (browser attempting best effort):', e);
-                    showToast('⚠️ Trying alternative playback method...', 'warning');
-                }
-                return false;
-            }
-        }
-
-        handlePlaybackError(e) {
-            console.error('Audio error:', e);
-            this.isPlaying = false;
-            this.updateUI();
-            setTimeout(() => {
-                if (this.playlist.length > 0 && this.currentIndex >= 0) this.play();
-            }, 2000);
-        }
-
-        pause() {
-            this.audio.pause();
-            this.isPlaying = false;
-            this.updateUI();
-            updateGlobalStatus();
-        }
-
-        togglePlay() {
-            if (this.isPlaying) this.pause();
-            else this.play();
-        }
-
-        async playNext() {
-            if (this.repeatMode === 'one') {
-                this.audio.currentTime = 0;
-                await this.play();
-                return;
-            }
-            if (this.currentIndex < this.playlist.length - 1) {
-                this.currentIndex++;
-            } else {
-                if (this.repeatMode === 'all') {
-                    this.currentIndex = 0;
-                } else {
-                    this.isPlaying = false;
-                    this.updateUI();
-                    updateGlobalStatus();
+            async playNext() {
+                if (this.repeatMode === 1) {
+                    this.audio.currentTime = 0;
+                    await this.play();
                     return;
                 }
+                
+                if (this.currentIndex < this.playlist.length - 1) {
+                    this.currentIndex++;
+                    const loaded = await this.loadTrack(this.playlist[this.currentIndex]);
+                    if (loaded) await this.play();
+                } else {
+                    if (this.repeatMode === 2) {
+                        this.currentIndex = 0;
+                        const loaded = await this.loadTrack(this.playlist[0]);
+                        if (loaded) await this.play();
+                    } else {
+                        this.pause();
+                        this.currentIndex = -1;
+                        this.updateUI();
+                    }
+                }
             }
-            const loaded = await this.loadTrack(this.playlist[this.currentIndex]);
-            if (loaded) await this.play();
-        }
 
-        prev() {
-            if (this.audio.currentTime > 3) {
-                this.audio.currentTime = 0;
-            } else if (this.currentIndex > 0) {
-                this.currentIndex--;
-                this.loadTrack(this.playlist[this.currentIndex]).then(() => this.play());
+            prev() {
+                if (this.audio.currentTime > 3) this.audio.currentTime = 0;
+                else if (this.currentIndex > 0) {
+                    this.currentIndex--;
+                    this.loadTrack(this.playlist[this.currentIndex]).then(() => this.play());
+                }
             }
-        }
 
-        addToPlaylist(track) {
-            this.playlist.push(track);
-            if (this.currentIndex === -1) {
-                this.currentIndex = 0;
-                this.loadTrack(track);
+            addToPlaylist(track) {
+                this.playlist.push(track);
+                if (this.currentIndex === -1) {
+                    this.currentIndex = 0;
+                    this.loadTrack(track);
+                }
+                this.renderPlaylist();
             }
-            this.renderPlaylist();
-        }
 
-        updateSeekUI() {
-            const seek = document.getElementById(`seek-${this.id}`);
-            const cur = document.getElementById(`current-time-${this.id}`);
-            const dur = document.getElementById(`duration-${this.id}`);
-            if (seek && this.audio.duration && !isNaN(this.audio.duration)) {
-                if (!seek.matches(':active')) seek.value = (this.audio.currentTime / this.audio.duration) * 100;
-                cur.textContent = formatTime(this.audio.currentTime);
-                dur.textContent = formatTime(this.audio.duration);
+            updateSeekUI() {
+                const seek = document.getElementById(`seek-${this.id}`);
+                const cur = document.getElementById(`current-time-${this.id}`);
+                const dur = document.getElementById(`duration-${this.id}`);
+                if (seek && this.audio.duration && !isNaN(this.audio.duration)) {
+                    if (!seek.matches(':active')) seek.value = (this.audio.currentTime / this.audio.duration) * 100;
+                    cur.textContent = formatTime(this.audio.currentTime);
+                    dur.textContent = formatTime(this.audio.duration);
+                }
             }
-        }
 
-        seek(value) {
-            if (this.audio.duration && !isNaN(this.audio.duration)) {
-                this.audio.currentTime = (value / 100) * this.audio.duration;
+            seek(value) {
+                if (this.audio.duration && !isNaN(this.audio.duration)) {
+                    this.audio.currentTime = (value / 100) * this.audio.duration;
+                }
             }
-        }
 
-        updateMediaSession() {
-            if ('mediaSession' in navigator && this.currentTrack) {
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title: this.currentTrack.name, artist: 'PossibilityData Player', album: 'P2P Sync Library'
+            updateMediaSession() {
+                if ('mediaSession' in navigator && this.currentTrack) {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: this.currentTrack.name, artist: 'PossibilityData Player', album: 'P2P Sync Library'
+                    });
+                    navigator.mediaSession.setActionHandler('play', () => this.play());
+                    navigator.mediaSession.setActionHandler('pause', () => this.pause());
+                    navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
+                    navigator.mediaSession.setActionHandler('previoustrack', () => this.prev());
+                }
+            }
+
+            render() {
+                const container = document.getElementById('playersContainer');
+                const div = document.createElement('div');
+                div.className = 'player-card';
+                div.id = `player-${this.id}`;
+                div.innerHTML = `
+                    <div class="player-header">
+                        <span>🎧 Player ${this.id}</span>
+                        <button class="btn btn-danger btn-sm" onclick="removePlayer(${this.id})">✕</button>
+                    </div>
+                    <div class="track-info" id="track-info-${this.id}">No track loaded</div>
+                    
+                    <div class="seek-control">
+                        <span id="current-time-${this.id}">0:00</span>
+                        <input type="range" min="0" max="100" value="0" step="0.1" id="seek-${this.id}">
+                        <span id="duration-${this.id}">0:00</span>
+                    </div>
+
+                    <div class="player-controls">
+                        <button onclick="players[${this.id}].prev()" title="Previous">⏮</button>
+                        <button class="play-btn" onclick="players[${this.id}].togglePlay()" id="play-btn-${this.id}" title="Play/Pause">▶</button>
+                        <button onclick="players[${this.id}].playNext()" title="Next">⏭</button>
+                        <button class="repeat-btn" onclick="players[${this.id}].toggleRepeat()" id="repeat-btn-${this.id}" title="Repeat: None">➡️</button>
+                    </div>
+
+                    <div class="pan-control">
+                        <span>L</span>
+                        <input type="range" min="-1" max="1" step="0.1" value="0" oninput="players[${this.id}].setPan(this.value)">
+                        <span>R</span>
+                    </div>
+                    <div class="pan-buttons">
+                        <button class="pan-left" onclick="players[${this.id}].setPan(-1)">Only Left</button>
+                        <button class="pan-center active" onclick="players[${this.id}].setPan(0)">Center</button>
+                        <button class="pan-right" onclick="players[${this.id}].setPan(1)">Only Right</button>
+                    </div>
+
+                    <div class="device-control">
+                        <label>Output Device (Select Bluetooth):</label>
+                        <select onchange="players[${this.id}].setOutput(this.value)" id="device-select-${this.id}">
+                            <option value="">Default System Audio</option>
+                        </select>
+                    </div>
+                    <div class="player-playlist" id="playlist-${this.id}"></div>
+                    <button class="btn btn-outline btn-sm" onclick="addLibraryToPlayer(${this.id})">+ Add All from Library</button>
+                `;
+                container.appendChild(div);
+                
+                document.getElementById(`seek-${this.id}`).addEventListener('input', (e) => this.seek(e.target.value));
+                populateDeviceSelect(this.id);
+
+                // DRAG FROM LIBRARY TO PLAYER SUPPORT
+                div.ondragover = (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                    div.style.boxShadow = '0 0 20px var(--glow)';
+                    div.style.borderColor = 'var(--highlight)';
+                };
+                div.ondragleave = () => {
+                    div.style.boxShadow = 'none';
+                    div.style.borderColor = 'var(--border)';
+                };
+                div.ondrop = async (e) => {
+                    e.preventDefault();
+                    div.style.boxShadow = 'none';
+                    div.style.borderColor = 'var(--border)';
+                    const trackId = e.dataTransfer.getData('text/plain');
+                    if (trackId) {
+                        const db = await dbPromise;
+                        const tx = db.transaction('metadata', 'readonly');
+                        const req = tx.objectStore('metadata').get(trackId);
+                        req.onsuccess = async () => {
+                            if (req.result) {
+                                this.addToPlaylist(req.result);
+                                showToast(`✅ Added to Player ${this.id}`, 'success');
+                            }
+                        };
+                    }
+                };
+            }
+
+            updateUI() {
+                const info = document.getElementById(`track-info-${this.id}`);
+                const btn = document.getElementById(`play-btn-${this.id}`);
+                if (this.currentTrack) {
+                    info.textContent = `${this.currentTrack.name} ${this.isPlaying ? '▶' : '⏸'}`;
+                    info.className = `track-info ${this.isPlaying ? 'active' : ''}`;
+                }
+                btn.textContent = this.isPlaying ? '⏸' : '▶';
+                this.renderPlaylist();
+            }
+
+            renderPlaylist() {
+                const list = document.getElementById(`playlist-${this.id}`);
+                list.innerHTML = '';
+                this.playlist.forEach((track, idx) => {
+                    const item = document.createElement('div');
+                    item.className = `playlist-item ${idx === this.currentIndex ? 'active' : ''}`;
+                    item.innerHTML = `<span>${idx + 1}. ${track.name}</span>`;
+                    item.onclick = async () => {
+                        this.currentIndex = idx;
+                        const loaded = await this.loadTrack(track);
+                        if (loaded) await this.play();
+                    };
+                    list.appendChild(item);
                 });
-                navigator.mediaSession.setActionHandler('play', () => this.play());
-                navigator.mediaSession.setActionHandler('pause', () => this.pause());
-                navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
-                navigator.mediaSession.setActionHandler('previoustrack', () => this.prev());
             }
         }
 
-        render() {
-            const container = document.getElementById('playersContainer');
-            const div = document.createElement('div');
-            div.className = 'player-card';
-            div.id = `player-${this.id}`;
-            div.innerHTML = `
-                <div class="player-header">
-                    <span>🎧 Player ${this.id}</span>
-                    <button class="btn btn-danger btn-sm" onclick="removePlayer(${this.id})">✕</button>
-                </div>
-                <div class="track-info" id="track-info-${this.id}">No track loaded</div>
-                <div class="seek-control">
-                    <span id="current-time-${this.id}">0:00</span>
-                    <input type="range" min="0" max="100" value="0" step="0.1" id="seek-${this.id}">
-                    <span id="duration-${this.id}">0:00</span>
-                </div>
-                <div class="player-controls">
-                    <button onclick="players[${this.id}].prev()" title="Previous">⏮</button>
-                    <button class="play-btn" onclick="players[${this.id}].togglePlay()" id="play-btn-${this.id}" title="Play/Pause">▶</button>
-                    <button onclick="players[${this.id}].playNext()" title="Next">⏭</button>
-                    <button onclick="players[${this.id}].toggleRepeat()" id="repeat-btn-${this.id}" title="Repeat Mode: None">➡️</button>
-                </div>
-                <div class="pan-control">
-                    <span>L</span>
-                    <input type="range" min="-1" max="1" step="0.1" value="0" oninput="players[${this.id}].setPan(this.value)">
-                    <span>R</span>
-                </div>
-                <div class="pan-buttons">
-                    <button class="pan-left" onclick="players[${this.id}].setPan(-1)">Only Left</button>
-                    <button class="pan-center active" onclick="players[${this.id}].setPan(0)">Center</button>
-                    <button class="pan-right" onclick="players[${this.id}].setPan(1)">Only Right</button>
-                </div>
-                <div class="device-control">
-                    <label>Output Device (Select Bluetooth):</label>
-                    <select onchange="players[${this.id}].setOutput(this.value)" id="device-select-${this.id}">
-                        <option value="">Default System Audio</option>
-                    </select>
-                </div>
-                <div class="player-playlist" id="playlist-${this.id}"></div>
-                <button class="btn btn-outline btn-sm" onclick="addLibraryToPlayer(${this.id})">+ Add All from Library</button>
-            `;
-            container.appendChild(div);
-            
-            document.getElementById(`seek-${this.id}`).addEventListener('input', (e) => this.seek(e.target.value));
-            populateDeviceSelect(this.id);
+        function updateGlobalStatus() {
+            const anyPlaying = Object.values(players).some(p => p.isPlaying);
+            const connectedCount = Object.keys(connections).length;
+            if (anyPlaying) setStatus('playing', `🎵 Playing • ${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
+            else if (connectedCount > 0) setStatus('connected', `${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
+        }
 
-            // DRAG AND DROP FROM LIBRARY TO PLAYER
-            div.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                div.classList.add('dragover');
+        async function populateDeviceSelect(playerId) {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+                const select = document.getElementById(`device-select-${playerId}`);
+                if (!select) return;
+                const currentVal = select.value;
+                select.innerHTML = '<option value="">Default System Audio</option>';
+                audioOutputs.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || `Audio Device (${device.deviceId.substr(0,5)}...)`;
+                    select.appendChild(option);
+                });
+                select.value = currentVal;
+            } catch(e) { console.error('Device enumeration error:', e); }
+        }
+
+        async function refreshAudioDevices() {
+            showToast('🔄 Refreshing audio devices...', 'success');
+            for (const id in players) await populateDeviceSelect(id);
+            showToast('✅ Device list updated!', 'success');
+        }
+
+        function addPlayer() {
+            playerCounter++;
+            players[playerCounter] = new MusicPlayer(playerCounter);
+        }
+
+        function removePlayer(id) {
+            if (players[id]) {
+                players[id].audio.pause();
+                delete players[id];
+                document.getElementById(`player-${id}`).remove();
+            }
+        }
+
+        async function connectBluetooth() {
+            if (!navigator.bluetooth) { showToast('⚠️ Web Bluetooth not supported', 'warning'); return; }
+            try {
+                showToast('🔍 Searching for Bluetooth devices...');
+                const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['battery_service', 'device_information'] });
+                showToast(`✅ Paired with "${device.name}". Select it in the Output Device dropdown.`, 'success');
+                setTimeout(() => refreshAudioDevices(), 1500);
+            } catch (err) { if (err.name !== 'NotFoundError') showToast('⚠️ Bluetooth pairing cancelled', 'warning'); }
+        }
+
+        // ==================== LIBRARY & INGEST ====================
+        async function processNewAudioFile(file) {
+            // Accept ALL types of audio files without strict MIME restriction to ensure it works for all
+            const id = 'file_' + Date.now() + '_' + generateId();
+            const trackMeta = { id, name: file.name, size: file.size, type: file.type || 'audio/mpeg', isStream: false, timestamp: Date.now() };
+            await saveMetadata(trackMeta);
+            await saveBlob(id, file);
+            renderLibrary();
+            
+            if (isHost && Object.keys(connections).length > 0) {
+                announceTrackToPeers(trackMeta);
+            }
+            showToast(`✅ Added: ${file.name}`, 'success');
+        }
+
+        function addStreamUrl() {
+            const url = document.getElementById('streamUrl').value.trim();
+            if (!url) return;
+            const name = prompt('Track Name:', 'Streamed Track') || 'Streamed Track';
+            const track = { id: 'stream_' + Date.now(), name, type: 'audio/mpeg', url, isStream: true, timestamp: Date.now() };
+            saveMetadata(track);
+            renderLibrary();
+            document.getElementById('streamUrl').value = '';
+            showToast('✅ Stream URL added to library!', 'success');
+        }
+
+        async function renderLibrary() {
+            const tracks = await getAllMetadata();
+            const container = document.getElementById('libraryList');
+            document.getElementById('libCount').textContent = tracks.length;
+            container.innerHTML = '';
+            
+            if (tracks.length === 0) {
+                const msg = isHost ? 'No tracks yet. Drop, paste, or scan local files!' : 'Waiting for laptop library sync...';
+                container.innerHTML = `<div class="empty-state">${msg}</div>`;
+                return;
+            }
+            
+            // Fetch all blobs in one transaction for performance
+            const db = await dbPromise;
+            const tx = db.transaction('blobs', 'readonly');
+            const store = tx.objectStore('blobs');
+            
+            const blobPromises = tracks.map(track => {
+                return new Promise(resolve => {
+                    const req = store.get(track.id);
+                    req.onsuccess = () => resolve(!!req.result);
+                    req.onerror = () => resolve(false);
+                });
             });
-            div.addEventListener('dragleave', () => div.classList.remove('dragover'));
-            div.addEventListener('drop', async (e) => {
-                e.preventDefault();
-                div.classList.remove('dragover');
-                const trackId = e.dataTransfer.getData('text/plain');
-                if (trackId) {
+            
+            const hasBlobs = await Promise.all(blobPromises);
+            
+            tracks.sort((a, b) => b.timestamp - a.timestamp).forEach((track, index) => {
+                const hasBlob = hasBlobs[index];
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.draggable = true;
+                div.ondragstart = (e) => {
+                    e.dataTransfer.setData('text/plain', track.id);
+                    e.dataTransfer.effectAllowed = 'copy';
+                };
+                
+                let actionButtons = '';
+                if (hasBlob) {
+                    actionButtons = `
+                        <button class="file-btn download" onclick="playTrackInActivePlayer('${track.id}')">▶ Play</button>
+                        <button class="file-btn remove" onclick="deleteTrack('${track.id}')">✕</button>
+                    `;
+                } else {
+                    actionButtons = `
+                        <button class="file-btn download" style="background: var(--warning); color: #000;" onclick="requestTrackDownload('${track.id}')">⬇ Download</button>
+                        <button class="file-btn remove" onclick="deleteTrack('${track.id}')">✕</button>
+                    `;
+                }
+
+                div.innerHTML = `
+                    <div class="file-icon">${hasBlob ? '🎵' : '☁️'}</div>
+                    <div class="file-info">
+                        <div class="file-name" title="${track.name}">${track.name}</div>
+                        <div class="file-meta">${hasBlob ? formatSize(track.size) : 'Available on Laptop'}</div>
+                    </div>
+                    <div class="file-actions">
+                        ${actionButtons}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function requestTrackDownload(trackId) {
+            if (!isHost) {
+                const hostConn = Object.values(connections)[0];
+                if (hostConn) {
+                    showToast('⬇ Requesting download from laptop...', 'success');
+                    hostConn.send({ type: 'track-request', trackId });
+                } else {
+                    showToast('⚠️ Not connected to laptop', 'error');
+                }
+            }
+        }
+
+        async function playTrackInActivePlayer(trackId) {
+            const db = await dbPromise;
+            const tx = db.transaction('metadata', 'readonly');
+            const req = tx.objectStore('metadata').get(trackId);
+            req.onsuccess = async () => {
+                const track = req.result;
+                if (!track) return;
+                const playerId = Object.keys(players)[0] || 1;
+                if (players[playerId]) {
+                    players[playerId].addToPlaylist(track);
+                    players[playerId].currentIndex = players[playerId].playlist.length - 1;
+                    const loaded = await players[playerId].loadTrack(track);
+                    if (loaded) await players[playerId].play();
+                }
+            };
+        }
+
+        function addLibraryToPlayer(playerId) {
+            getAllMetadata().then(tracks => {
+                tracks.forEach(track => players[playerId].addToPlaylist(track));
+                showToast(`✅ Added ${tracks.length} tracks to Player ${playerId}`, 'success');
+            });
+        }
+
+        // Drag & Drop and Paste
+        const globalDropZone = document.getElementById('globalDropZone');
+        const fileInput = document.getElementById('fileInput');
+        const localScanInput = document.getElementById('localScanInput');
+
+        globalDropZone.addEventListener('click', () => globalDropZone.focus());
+        globalDropZone.addEventListener('dragover', (e) => { e.preventDefault(); globalDropZone.classList.add('dragover'); });
+        globalDropZone.addEventListener('dragleave', () => globalDropZone.classList.remove('dragover'));
+        globalDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            globalDropZone.classList.remove('dragover');
+            Array.from(e.dataTransfer.files).forEach(file => {
+                processNewAudioFile(file); // Process ALL dropped files to ensure no exceptions
+            });
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            Array.from(e.target.files).forEach(file => processNewAudioFile(file));
+            fileInput.value = '';
+        });
+
+        localScanInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) { showToast('⚠️ No files found in selected folder', 'warning'); return; }
+            showToast(`🔍 Processing ${files.length} local files...`);
+            for (const file of files) await processNewAudioFile(file);
+            showToast(`✅ Added ${files.length} tracks to library!`, 'success');
+            localScanInput.value = '';
+        });
+
+        document.addEventListener('paste', async (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            const items = e.clipboardData.items;
+            let fileAdded = false;
+            for (let item of items) {
+                if (item.kind === 'file') {
+                    await processNewAudioFile(item.getAsFile());
+                    fileAdded = true;
+                }
+            }
+            if (fileAdded) showToast('✅ Audio pasted from clipboard!', 'success');
+        });
+
+        // ==================== P2P SYNC LOGIC ====================
+        function createRoom() {
+            let identifier = document.getElementById('myIdentifier').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g, '') || 'host-' + generateId();
+            document.getElementById('myIdentifier').value = identifier;
+            window.lastHostId = identifier;
+            localStorage.setItem('pd_last_room', identifier);
+            localStorage.setItem('pd_last_role', 'host');
+            
+            const btn = document.getElementById('createRoomBtn');
+            btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Creating...';
+
+            peer = new Peer(identifier, { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+
+            peer.on('open', (id) => {
+                myPeerId = id; isHost = true;
+                document.getElementById('setupScreen').classList.remove('active');
+                document.getElementById('roomScreen').classList.add('active');
+                document.getElementById('roomCodeDisplay').value = id;
+                setStatus('connecting', `Room "${id}" created — waiting for devices...`);
+                showToast(`✅ Room created! Identifier: ${id}`, 'success');
+                btn.disabled = false; btn.innerHTML = '✨ Create Room';
+                if (!appInitialized) restartPermissionWizard();
+                startAggressiveReconnect();
+                updateUIMode();
+            });
+
+            peer.on('connection', handleConnection);
+            peer.on('error', (err) => {
+                showToast(`❌ Error: ${err.type}`, 'error');
+                btn.disabled = false; btn.innerHTML = '✨ Create Room';
+            });
+        }
+
+        function joinRoom(roomId) {
+            roomId = roomId || document.getElementById('joinIdentifier').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g, '');
+            if (!roomId) { showToast('⚠️ Enter a valid Room ID', 'error'); return; }
+            
+            window.lastJoinedRoom = roomId;
+            localStorage.setItem('pd_last_room', roomId);
+            localStorage.setItem('pd_last_role', 'client');
+            
+            const btn = document.getElementById('joinRoomBtn');
+            btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Joining...';
+
+            const uniqueId = `${roomId}-client-${generateId()}`;
+            peer = new Peer(uniqueId, { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+
+            peer.on('open', (id) => {
+                myPeerId = id; isHost = false;
+                document.getElementById('setupScreen').classList.remove('active');
+                document.getElementById('roomScreen').classList.add('active');
+                document.getElementById('roomCodeDisplay').value = roomId + ' (Client)';
+                setStatus('connecting', 'Connecting to host...');
+                
+                const conn = peer.connect(roomId, { reliable: true, metadata: { name: 'Phone/Client' } });
+                handleConnection(conn);
+                
+                btn.disabled = false; btn.innerHTML = '🔗 Join';
+                if (!appInitialized) restartPermissionWizard();
+                showToast('✅ Auto-joined room successfully!', 'success');
+                startAggressiveReconnect();
+                updateUIMode();
+            });
+
+            peer.on('error', (err) => {
+                showToast(`❌ Room not found or host offline`, 'error');
+                btn.disabled = false; btn.innerHTML = '🔗 Join';
+            });
+        }
+
+        function updateUIMode() {
+            if (!isHost) {
+                const dropZone = document.getElementById('globalDropZone');
+                if (dropZone) {
+                    dropZone.innerHTML = `
+                        <div class="drop-icon">📱</div>
+                        <div class="drop-text">Phone Sync Mode Active</div>
+                        <div class="drop-subtext">Music added on laptop will auto-download and play here</div>
+                    `;
+                    dropZone.style.pointerEvents = 'none';
+                    dropZone.style.opacity = '0.7';
+                }
+                const localScanBtn = document.querySelector('button[onclick*="localScanInput"]');
+                if (localScanBtn) localScanBtn.style.display = 'none';
+                
+                const streamGroup = document.querySelector('.input-group');
+                if (streamGroup && streamGroup.querySelector('label').textContent.includes('Stream')) {
+                    streamGroup.style.display = 'none';
+                }
+            }
+        }
+
+        function handleConnection(conn) {
+            const peerId = conn.peer;
+            conn.on('open', () => {
+                connections[peerId] = conn;
+                closeQR(); // AUTO-HIDE QR UI AFTER SUCCESSFUL CONNECTION
+                setStatus('connected', `Connected to Laptop`);
+                showToast('🎉 Connected to Laptop! Syncing library...', 'success');
+                
+                if (!isHost) {
+                    // Phone requests full library scan from laptop
+                    conn.send({ type: 'library-sync-request' });
+                } else {
+                    announceExistingTracks(conn);
+                }
+                updateGlobalStatus();
+            });
+
+            conn.on('data', async (data) => {
+                if (data.type === 'track-announce') {
                     const db = await dbPromise;
                     const tx = db.transaction('metadata', 'readonly');
-                    const req = tx.objectStore('metadata').get(trackId);
+                    const req = tx.objectStore('metadata').get(data.track.id);
+                    req.onsuccess = () => {
+                        if (!req.result) {
+                            // Save metadata immediately so it appears in the list
+                            saveMetadata(data.track);
+                            renderLibrary();
+                            // Auto-request download as per user requirement
+                            conn.send({ type: 'track-request', trackId: data.track.id, trackMeta: data.track });
+                            showToast(`📥 Auto-downloading from laptop: ${data.track.name}`, 'success');
+                        }
+                    };
+                } else if (data.type === 'library-sync-request') {
+                    getAllMetadata().then(tracks => {
+                        tracks.forEach(track => {
+                            conn.send({ type: 'track-announce', track });
+                        });
+                        showToast('📤 Sent full library to phone', 'success');
+                    });
+                } else if (data.type === 'track-request') {
+                    sendTrackChunks(data.trackId, conn);
+                } else if (data.type === 'track-chunk') {
+                    if (!receivingTracks[data.trackId]) {
+                        receivingTracks[data.trackId] = { chunks: {}, received: 0, total: data.totalSize, meta: data.trackMeta };
+                    }
+                    receivingTracks[data.trackId].chunks[data.offset] = data.buffer;
+                    receivingTracks[data.trackId].received += data.buffer.byteLength;
+                } else if (data.type === 'track-complete') {
+                    completeTrackReceive(data.trackId);
+                } else if (data.type === 'sync-play') {
+                    // Ensure phone plays the same track as laptop
+                    const db = await dbPromise;
+                    const tx = db.transaction('metadata', 'readonly');
+                    const req = tx.objectStore('metadata').get(data.trackId);
                     req.onsuccess = async () => {
                         const track = req.result;
                         if (track) {
-                            this.addToPlaylist(track);
-                            this.currentIndex = this.playlist.length - 1;
-                            const loaded = await this.loadTrack(track);
-                            if (loaded) await this.play();
-                            showToast(`🎵 Dropped ${track.name} into Player ${this.id}`, 'success');
+                            const firstPlayerId = Object.keys(players)[0];
+                            if (players[firstPlayerId]) {
+                                const alreadyInPlaylist = players[firstPlayerId].playlist.some(t => t.id === track.id);
+                                if (!alreadyInPlaylist) {
+                                    players[firstPlayerId].addToPlaylist(track);
+                                }
+                                players[firstPlayerId].currentIndex = players[firstPlayerId].playlist.findIndex(t => t.id === track.id);
+                                
+                                const loaded = await players[firstPlayerId].loadTrack(track);
+                                if (loaded) {
+                                    players[firstPlayerId].audio.currentTime = data.time || 0;
+                                    await players[firstPlayerId].play();
+                                }
+                            }
                         }
                     };
                 }
             });
-        }
 
-        updateUI() {
-            const info = document.getElementById(`track-info-${this.id}`);
-            const btn = document.getElementById(`play-btn-${this.id}`);
-            if (this.currentTrack) {
-                info.textContent = `${this.currentTrack.name} ${this.isPlaying ? '▶' : '⏸'}`;
-                info.className = `track-info ${this.isPlaying ? 'active' : ''}`;
-            }
-            btn.textContent = this.isPlaying ? '⏸' : '▶';
-            this.renderPlaylist();
-        }
-
-        renderPlaylist() {
-            const list = document.getElementById(`playlist-${this.id}`);
-            list.innerHTML = '';
-            this.playlist.forEach((track, idx) => {
-                const item = document.createElement('div');
-                item.className = `playlist-item ${idx === this.currentIndex ? 'active' : ''}`;
-                item.innerHTML = `<span>${idx + 1}. ${track.name}</span>`;
-                item.onclick = async () => {
-                    this.currentIndex = idx;
-                    const loaded = await this.loadTrack(track);
-                    if (loaded) await this.play();
-                };
-                list.appendChild(item);
+            conn.on('close', () => {
+                delete connections[peerId];
+                setStatus('connected', `${Object.keys(connections).length} device(s) connected`);
+                updateGlobalStatus();
+                showToast('⚠️ Connection lost. Reconnecting...', 'warning');
             });
         }
-    }
 
-    function updateGlobalStatus() {
-        const anyPlaying = Object.values(players).some(p => p.isPlaying);
-        const connectedCount = Object.keys(connections).length;
-        if (anyPlaying) setStatus('playing', `🎵 Playing • ${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
-        else if (connectedCount > 0) setStatus('connected', `${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
-    }
-
-    async function populateDeviceSelect(playerId) {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
-            const select = document.getElementById(`device-select-${playerId}`);
-            if (!select) return;
-            const currentVal = select.value;
-            select.innerHTML = '<option value="">Default System Audio</option>';
-            audioOutputs.forEach(device => {
-                const option = document.createElement('option');
-                option.value = device.deviceId;
-                option.textContent = device.label || `Audio Device (${device.deviceId.substr(0,5)}...)`;
-                select.appendChild(option);
-            });
-            select.value = currentVal;
-        } catch(e) { console.error('Device enumeration error:', e); }
-    }
-
-    async function refreshAudioDevices() {
-        showToast('🔄 Refreshing audio devices...', 'success');
-        for (const id in players) await populateDeviceSelect(id);
-        showToast('✅ Device list updated!', 'success');
-    }
-
-    function addPlayer() {
-        playerCounter++;
-        players[playerCounter] = new MusicPlayer(playerCounter);
-    }
-
-    function removePlayer(id) {
-        if (players[id]) {
-            players[id].audio.pause();
-            delete players[id];
-            document.getElementById(`player-${id}`).remove();
-        }
-    }
-
-    async function connectBluetooth() {
-        if (!navigator.bluetooth) {
-            showToast('️ Web Bluetooth not supported in this browser', 'warning');
-            return;
-        }
-        try {
-            showToast('🔍 Searching for Bluetooth devices...');
-            const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['battery_service', 'device_information'] });
-            showToast(`✅ Paired with "${device.name}". Select it in the Output Device dropdown.`, 'success');
-            setTimeout(() => refreshAudioDevices(), 1500);
-        } catch (err) { 
-            if (err.name !== 'NotFoundError') showToast('️ Bluetooth pairing cancelled', 'warning'); 
-        }
-    }
-
-    // ==================== LIBRARY & INGEST (ALL FORMATS) ====================
-    async function processNewAudioFile(file) {
-        // Accept ALL files as requested, no strict type blocking
-        const id = 'file_' + Date.now() + '_' + generateId();
-        const trackMeta = { id, name: file.name, size: file.size, type: file.type || 'audio/mpeg', isStream: false, timestamp: Date.now() };
-        await saveMetadata(trackMeta);
-        await saveBlob(id, file);
-        renderLibrary();
-        
-        if (isHost && Object.keys(connections).length > 0) {
-            announceTrackToPeers(trackMeta);
-            showToast(`📥 Auto-downloading to connected devices...`, 'success');
-        }
-        showToast(`✅ Added & Syncing: ${file.name}`, 'success');
-    }
-
-    function addStreamUrl() {
-        const url = document.getElementById('streamUrl').value.trim();
-        if (!url) return;
-        const name = prompt('Track Name:', 'Streamed Track') || 'Streamed Track';
-        const track = { id: 'stream_' + Date.now(), name, type: 'audio/mpeg', url, isStream: true, timestamp: Date.now() };
-        saveMetadata(track);
-        renderLibrary();
-        document.getElementById('streamUrl').value = '';
-        showToast('✅ Stream URL added to library!', 'success');
-    }
-
-    async function renderLibrary() {
-        const tracks = await getAllMetadata();
-        const container = document.getElementById('libraryList');
-        document.getElementById('libCount').textContent = tracks.length;
-        container.innerHTML = '';
-        if (tracks.length === 0) {
-            container.innerHTML = '<div class="empty-state">No tracks in library.</div>';
-            return;
-        }
-        tracks.sort((a, b) => b.timestamp - a.timestamp).forEach(track => {
-            const div = document.createElement('div');
-            div.className = 'file-item';
-            div.setAttribute('draggable', 'true'); // ENABLE DRAG FROM LIBRARY
-            div.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', track.id);
-                e.dataTransfer.effectAllowed = 'copy';
-            });
-            div.innerHTML = `
-                <div class="file-icon">${track.isStream ? '🔗' : '🎵'}</div>
-                <div class="file-info">
-                    <div class="file-name" title="${track.name}">${track.name}</div>
-                    <div class="file-meta">${track.isStream ? 'Stream URL' : formatSize(track.size)}</div>
-                </div>
-                <div class="file-actions">
-                    <button class="file-btn download" onclick="playTrackInActivePlayer('${track.id}')">▶</button>
-                    <button class="file-btn remove" onclick="deleteTrack('${track.id}')">✕</button>
-                </div>
-            `;
-            container.appendChild(div);
-        });
-    }
-
-    async function playTrackInActivePlayer(trackId) {
-        const db = await dbPromise;
-        const tx = db.transaction('metadata', 'readonly');
-        const req = tx.objectStore('metadata').get(trackId);
-        req.onsuccess = async () => {
-            const track = req.result;
-            if (!track) return;
-            const playerId = Object.keys(players)[0] || 1;
-            if (players[playerId]) {
-                players[playerId].addToPlaylist(track);
-                players[playerId].currentIndex = players[playerId].playlist.length - 1;
-                const loaded = await players[playerId].loadTrack(track);
-                if (loaded) await players[playerId].play();
-            }
-        };
-    }
-
-    function addLibraryToPlayer(playerId) {
-        getAllMetadata().then(tracks => {
-            tracks.forEach(track => players[playerId].addToPlaylist(track));
-            showToast(`✅ Added ${tracks.length} tracks to Player ${playerId}`, 'success');
-        });
-    }
-
-    // Drag & Drop and Paste
-    const globalDropZone = document.getElementById('globalDropZone');
-    const fileInput = document.getElementById('fileInput');
-    const localScanInput = document.getElementById('localScanInput');
-
-    globalDropZone.addEventListener('click', () => globalDropZone.focus());
-    globalDropZone.addEventListener('dragover', (e) => { e.preventDefault(); globalDropZone.classList.add('dragover'); });
-    globalDropZone.addEventListener('dragleave', () => globalDropZone.classList.remove('dragover'));
-    globalDropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        globalDropZone.classList.remove('dragover');
-        Array.from(e.dataTransfer.files).forEach(file => {
-            processNewAudioFile(file); // Process ALL dropped files, no exceptions
-        });
-    });
-
-    fileInput.addEventListener('change', (e) => {
-        Array.from(e.target.files).forEach(file => processNewAudioFile(file));
-        fileInput.value = '';
-    });
-
-    localScanInput.addEventListener('change', async (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) {
-            showToast('⚠️ No files found in selected folder', 'warning');
-            return;
-        }
-        showToast(`🔍 Processing ${files.length} local files...`);
-        for (const file of files) await processNewAudioFile(file);
-        showToast(`✅ Added ${files.length} tracks to library!`, 'success');
-        localScanInput.value = '';
-    });
-
-    document.addEventListener('paste', async (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-        const items = e.clipboardData.items;
-        let fileAdded = false;
-        for (let item of items) {
-            if (item.kind === 'file') {
-                await processNewAudioFile(item.getAsFile());
-                fileAdded = true;
+        function broadcastToPeers(data) {
+            for (const peerId in connections) {
+                connections[peerId].send(data);
             }
         }
-        if (fileAdded) showToast('✅ Audio pasted from clipboard!', 'success');
-    });
 
-    // ==================== P2P SYNC LOGIC ====================
-    function createRoom() {
-        let identifier = document.getElementById('myIdentifier').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g, '') || 'host-' + generateId();
-        document.getElementById('myIdentifier').value = identifier;
-        localStorage.setItem('pd_host_id', identifier); // Save for fast reconnect
-        
-        const btn = document.getElementById('createRoomBtn');
-        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Creating...';
+        function announceExistingTracks(conn) {
+            getAllMetadata().then(tracks => {
+                tracks.forEach(track => conn.send({ type: 'track-announce', track }));
+            });
+        }
 
-        peer = new Peer(identifier, { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+        function announceTrackToPeers(trackMeta) {
+            broadcastToPeers({ type: 'track-announce', track: trackMeta });
+        }
 
-        peer.on('open', (id) => {
-            myPeerId = id; isHost = true;
-            document.getElementById('setupScreen').classList.remove('active');
-            document.getElementById('roomScreen').classList.add('active');
-            document.getElementById('roomCodeDisplay').value = id;
-            setStatus('connecting', `Room "${id}" created — waiting for devices...`);
-            showToast(`✅ Room created! Identifier: ${id}`, 'success');
-            btn.disabled = false; btn.innerHTML = '✨ Create Room';
-            if (!appInitialized) restartPermissionWizard();
-        });
-
-        peer.on('connection', handleConnection);
-        peer.on('error', (err) => {
-            showToast(`❌ Error: ${err.type}`, 'error');
-            btn.disabled = false; btn.innerHTML = '✨ Create Room';
-        });
-    }
-
-    function joinRoom() {
-        let identifier = document.getElementById('joinIdentifier').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g, '');
-        if (!identifier) { showToast('⚠️ Enter a valid Room ID', 'error'); return; }
-        
-        localStorage.setItem('pd_host_id', identifier); // Save for fast reconnect across refreshes
-        
-        const btn = document.getElementById('joinRoomBtn');
-        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Joining...';
-
-        const uniqueId = `${identifier}-client-${generateId()}`;
-        peer = new Peer(uniqueId, { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
-
-        peer.on('open', (id) => {
-            myPeerId = id; isHost = false;
-            document.getElementById('setupScreen').classList.remove('active');
-            document.getElementById('roomScreen').classList.add('active');
-            document.getElementById('roomCodeDisplay').value = identifier + ' (Client)';
-            setStatus('connecting', 'Connecting to host...');
-            
-            const conn = peer.connect(identifier, { reliable: true, metadata: { name: 'Phone/Client' } });
-            handleConnection(conn);
-            
-            btn.disabled = false; btn.innerHTML = ' Join';
-            if (!appInitialized) restartPermissionWizard();
-            showToast('✅ Auto-joined room successfully!', 'success');
-            startFastReconnect(); // Start aggressive scanning
-        });
-
-        peer.on('error', (err) => {
-            showToast(`❌ Room not found or host offline`, 'error');
-            btn.disabled = false; btn.innerHTML = '🔗 Join';
-        });
-    }
-
-    function handleConnection(conn) {
-        const peerId = conn.peer;
-        conn.on('open', () => {
-            connections[peerId] = conn;
-            setStatus('connected', `${Object.keys(connections).length} device(s) connected`);
-            showToast('🎉 Device connected! Music will auto-sync.', 'success');
-            
-            // AUTO-HIDE QR UI WHEN CONNECTION IS ESTABLISHED
-            closeQR();
-            
-            if (isHost) announceExistingTracks(conn);
-            updateGlobalStatus();
-        });
-
-        conn.on('data', async (data) => {
-            if (data.type === 'track-announce') {
-                const db = await dbPromise;
-                const tx = db.transaction('metadata', 'readonly');
-                const req = tx.objectStore('metadata').get(data.track.id);
-                req.onsuccess = () => {
-                    if (!req.result) {
-                        conn.send({ type: 'track-request', trackId: data.track.id, trackMeta: data.track });
-                        showToast(`📥 Auto-downloading: ${data.track.name}`, 'success');
-                    }
-                };
-            } else if (data.type === 'track-request') {
-                sendTrackChunks(data.trackId, conn);
-            } else if (data.type === 'track-chunk') {
-                if (!receivingTracks[data.trackId]) {
-                    receivingTracks[data.trackId] = { chunks: {}, received: 0, total: data.totalSize, meta: data.trackMeta };
+        async function sendTrackChunks(trackId, conn) {
+            const blob = await getBlob(trackId);
+            if (!blob) return;
+            const chunkSize = 16384;
+            let offset = 0;
+            const sendNext = () => {
+                if (offset >= blob.size) {
+                    conn.send({ type: 'track-complete', trackId });
+                    return;
                 }
-                receivingTracks[data.trackId].chunks[data.offset] = data.buffer;
-                receivingTracks[data.trackId].received += data.buffer.byteLength;
-            } else if (data.type === 'track-complete') {
-                completeTrackReceive(data.trackId);
-            } else if (data.type === 'sync-play') {
-                // CLIENT RECEIVES PLAY COMMAND FROM HOST (Laptop -> Phone sync)
-                showToast(`🎵 Host is playing: ${data.trackId}`, 'success');
-                const db = await dbPromise;
-                const tx = db.transaction('metadata', 'readonly');
-                const req = tx.objectStore('metadata').get(data.trackId);
-                req.onsuccess = async () => {
-                    const track = req.result;
-                    if (track) {
-                        const playerId = Object.keys(players)[0] || 1;
-                        if (players[playerId]) {
-                            players[playerId].addToPlaylist(track);
-                            players[playerId].currentIndex = players[playerId].playlist.length - 1;
-                            const loaded = await players[playerId].loadTrack(track);
-                            if (loaded) {
-                                players[playerId].audio.currentTime = data.time || 0;
-                                await players[playerId].play();
-                            }
-                        }
-                    }
-                };
+                const chunk = blob.slice(offset, offset + chunkSize);
+                chunk.arrayBuffer().then(buffer => {
+                    conn.send({ type: 'track-chunk', trackId, offset, buffer, totalSize: blob.size });
+                    offset += chunkSize;
+                    sendNext();
+                });
+            };
+            sendNext();
+        }
+
+        async function completeTrackReceive(trackId) {
+            const rt = receivingTracks[trackId];
+            if (!rt) return;
+            const sortedKeys = Object.keys(rt.chunks).sort((a, b) => parseInt(a) - parseInt(b));
+            const buffers = sortedKeys.map(key => rt.chunks[key]);
+            const blob = new Blob(buffers, { type: rt.meta.type || 'audio/mpeg' });
+            
+            await saveBlob(trackId, blob);
+            await saveMetadata(rt.meta);
+            showToast(`✅ Downloaded & added to library: ${rt.meta.name}`, 'success');
+            renderLibrary();
+            
+            // Auto-add to player and play if it's the first track or user expects it
+            const firstPlayerId = Object.keys(players)[0];
+            if (players[firstPlayerId]) {
+                const alreadyInPlaylist = players[firstPlayerId].playlist.some(t => t.id === trackId);
+                if (!alreadyInPlaylist) {
+                    players[firstPlayerId].addToPlaylist(rt.meta);
+                }
+            }
+            
+            delete receivingTracks[trackId];
+        }
+
+        // ==================== UI HELPERS ====================
+        function copyRoomCode() {
+            const code = document.getElementById('roomCodeDisplay').value;
+            navigator.clipboard.writeText(code).then(() => showToast('📋 Room ID copied!', 'success'));
+        }
+
+        function showRoomQR() {
+            const code = document.getElementById('roomCodeDisplay').value;
+            if (!code) return;
+            const url = `${window.location.href.split('#')[0]}#join=${encodeURIComponent(code)}`;
+            document.getElementById('qrContainer').innerHTML = '';
+            new QRCode(document.getElementById('qrContainer'), { text: url, width: 180, height: 180 });
+            document.getElementById('qrModal').classList.add('show');
+        }
+
+        function closeQR() {
+            document.getElementById('qrModal').classList.remove('show');
+        }
+
+        function leaveRoom() {
+            Object.values(connections).forEach(conn => conn.close());
+            connections = {};
+            if (peer) { peer.destroy(); peer = null; }
+            Object.keys(players).forEach(id => removePlayer(id));
+            document.getElementById('roomScreen').classList.remove('active');
+            document.getElementById('setupScreen').classList.add('active');
+            setStatus('disconnected', 'Disconnected');
+            if (wakeLock) { wakeLock.release(); wakeLock = null; }
+            if (playbackRetryInterval) { clearInterval(playbackRetryInterval); playbackRetryInterval = null; }
+            if (window.reconnectInterval) { clearInterval(window.reconnectInterval); window.reconnectInterval = null; }
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && appInitialized) {
+                Object.values(players).forEach(player => {
+                    if (player.playlist.length > 0 && !player.isPlaying) player.play();
+                });
             }
         });
 
-        conn.on('close', () => {
-            delete connections[peerId];
-            setStatus('connecting', '⚡ Connection lost. Actively scanning to reconnect...');
-            updateGlobalStatus();
-            if (!isHost) {
-                setTimeout(() => {
-                    if (!connections[peerId] && peer && !peer.disconnected) {
-                        const newConn = peer.connect(peerId, { reliable: true, metadata: { name: 'Phone/Client' } });
-                        handleConnection(newConn);
-                    }
-                }, 1000);
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('pd_user');
+            if (savedUser) {
+                enterApp();
+            }
+            
+            const hash = window.location.hash;
+            if (hash.startsWith('#join=')) {
+                const roomId = decodeURIComponent(hash.substring(6));
+                document.getElementById('joinIdentifier').value = roomId;
+                history.replaceState(null, null, window.location.pathname);
+                showToast('🎯 Auto-joining room from QR scan...', 'success');
+                setTimeout(() => joinRoom(roomId), 500);
             }
         });
-    }
 
-    function announceExistingTracks(conn) {
-        getAllMetadata().then(tracks => {
-            tracks.forEach(track => conn.send({ type: 'track-announce', track }));
+        window.addEventListener('beforeunload', () => {
+            if (wakeLock) wakeLock.release();
+            if (playbackRetryInterval) clearInterval(playbackRetryInterval);
+            if (window.reconnectInterval) clearInterval(window.reconnectInterval);
         });
-    }
-
-    function announceTrackToPeers(trackMeta) {
-        const msg = { type: 'track-announce', track: trackMeta };
-        for (const peerId in connections) connections[peerId].send(msg);
-    }
-
-    async function sendTrackChunks(trackId, conn) {
-        const blob = await getBlob(trackId);
-        if (!blob) return;
-        const chunkSize = 16384;
-        let offset = 0;
-        const sendNext = () => {
-            if (offset >= blob.size) {
-                conn.send({ type: 'track-complete', trackId });
-                return;
-            }
-            const chunk = blob.slice(offset, offset + chunkSize);
-            chunk.arrayBuffer().then(buffer => {
-                conn.send({ type: 'track-chunk', trackId, offset, buffer, totalSize: blob.size });
-                offset += chunkSize;
-                sendNext();
-            });
-        };
-        sendNext();
-    }
-
-    async function completeTrackReceive(trackId) {
-        const rt = receivingTracks[trackId];
-        if (!rt) return;
-        const sortedKeys = Object.keys(rt.chunks).sort((a, b) => parseInt(a) - parseInt(b));
-        const buffers = sortedKeys.map(key => rt.chunks[key]);
-        const blob = new Blob(buffers, { type: rt.meta.type || 'audio/mpeg' });
-        await saveBlob(trackId, blob);
-        await saveMetadata(rt.meta);
-        showToast(`✅ Auto-downloaded & saved: ${rt.meta.name}`, 'success');
-        renderLibrary();
-        delete receivingTracks[trackId];
-    }
-
-    // ==================== UI HELPERS ====================
-    function copyRoomCode() {
-        const code = document.getElementById('roomCodeDisplay').value;
-        navigator.clipboard.writeText(code).then(() => showToast(' Room ID copied!', 'success'));
-    }
-
-    function showRoomQR() {
-        const code = document.getElementById('roomCodeDisplay').value;
-        if (!code) return;
-        const url = `${window.location.origin}${window.location.pathname}#join=${encodeURIComponent(code)}`;
-        document.getElementById('qrContainer').innerHTML = '';
-        new QRCode(document.getElementById('qrContainer'), { text: url, width: 180, height: 180 });
-        document.getElementById('qrModal').classList.add('show');
-    }
-
-    function closeQR() {
-        document.getElementById('qrModal').classList.remove('show');
-    }
-
-    function leaveRoom() {
-        Object.values(connections).forEach(conn => conn.close());
-        connections = {};
-        if (peer) { peer.destroy(); peer = null; }
-        Object.keys(players).forEach(id => removePlayer(id));
-        document.getElementById('roomScreen').classList.remove('active');
-        document.getElementById('setupScreen').classList.add('active');
-        setStatus('disconnected', 'Disconnected');
-        if (wakeLock) { wakeLock.release(); wakeLock = null; }
-        if (playbackRetryInterval) { clearInterval(playbackRetryInterval); playbackRetryInterval = null; }
-        if (reconnectInterval) { clearInterval(reconnectInterval); reconnectInterval = null; }
-        localStorage.removeItem('pd_host_id');
-    }
-
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && appInitialized) {
-            Object.values(players).forEach(player => {
-                if (player.playlist.length > 0 && !player.isPlaying) player.play();
-            });
-        }
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-        // Check auth state
-        if (localStorage.getItem('pd_current_user')) {
-            goToSetup();
-        }
-        
-        // Check for auto-join via QR
-        const hash = window.location.hash;
-        if (hash.startsWith('#join=')) {
-            const roomId = decodeURIComponent(hash.substring(6));
-            document.getElementById('joinIdentifier').value = roomId;
-            history.replaceState(null, null, window.location.pathname);
-            showToast('🎯 Auto-joining room from QR scan...', 'success');
-            setTimeout(() => joinRoom(), 500);
-        }
-        
-        // Check for fast reconnect on load
-        const savedHostId = localStorage.getItem('pd_host_id');
-        if (savedHostId) {
-            startFastReconnect();
-        }
-    });
-
-    window.addEventListener('beforeunload', () => {
-        if (wakeLock) wakeLock.release();
-        if (playbackRetryInterval) clearInterval(playbackRetryInterval);
-        if (reconnectInterval) clearInterval(reconnectInterval);
-    });
-</script>
+    </script>
+</body>
+</html>
+```
