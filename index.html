@@ -2,956 +2,127 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎵 POSSIBILITYMUSIC — Live P2P Streaming Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎵 POSSIBILITYDATA — Always-On Music Sync</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        /* ===== GREEN THEME ===== */
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
             --bg-primary: #0a0f0a; --bg-secondary: #0f1a0f; --bg-card: #1a2e1a;
             --bg-input: #142a14; --accent: #1a5f1a; --accent-light: #2d862d;
             --highlight: #00c853; --text-primary: #ffffff; --text-secondary: #a8d8a8;
             --success: #00e676; --warning: #ffb74d; --border: #2a4a2a;
-            --glow: rgba(0, 200, 83, 0.35); --glow-green: rgba(0, 230, 118, 0.4);
-            --radius: 16px;
+            --glow: rgba(0, 200, 83, 0.35); --radius: 16px;
         }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: var(--bg-primary); color: var(--text-primary);
             min-height: 100vh; overflow-x: hidden;
         }
-        
         body::before {
-            content: '';
-            position: fixed; top: -50%; left: -50%;
-            width: 200%; height: 200%;
+            content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
             background: radial-gradient(circle at 30% 40%, rgba(0, 200, 83, 0.06) 0%, transparent 50%),
                         radial-gradient(circle at 70% 60%, rgba(0, 230, 118, 0.04) 0%, transparent 50%);
-            animation: bgFloat 20s ease-in-out infinite;
-            z-index: -1; pointer-events: none;
+            animation: bgFloat 20s ease-in-out infinite; z-index: -1; pointer-events: none;
         }
-
-        @keyframes bgFloat {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            50% { transform: translate(-2%, -2%) rotate(1deg); }
-        }
-
-        .container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; }
+        @keyframes bgFloat { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-2%, -2%) rotate(1deg); } }
         
-        header { text-align: center; padding: 30px 0 20px; }
-        .logo { font-size: 3rem; margin-bottom: 5px; animation: pulse 2s infinite; display: inline-block; }
+        .container { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 16px; min-height: 100vh; display: flex; flex-direction: column; }
+        header { text-align: center; padding: 20px 0; }
+        .logo { font-size: 2.5rem; margin-bottom: 5px; animation: pulse 2s infinite; display: inline-block; }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         header h1 { 
-            font-size: 2rem; font-weight: 800; 
+            font-size: 1.8rem; font-weight: 800; 
             background: linear-gradient(135deg, var(--highlight), var(--accent-light), #66bb6a); 
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
-            background-clip: text; letter-spacing: -1px; 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; 
         }
-        header p { color: var(--text-secondary); margin-top: 8px; font-size: 0.95rem; }
-        
-        /* ===== STATUS BAR ===== */
+        header p { color: var(--text-secondary); margin-top: 6px; font-size: 0.9rem; }
+
         .status-bar {
-            display: flex; align-items: center; gap: 10px;
-            padding: 12px 16px; border-radius: 12px;
-            margin-bottom: 20px; font-size: 14px; font-weight: 500;
-            border: 1px solid var(--border);
+            display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px;
+            margin-bottom: 16px; font-size: 13px; font-weight: 600; border: 1px solid var(--border);
         }
         .status-bar.disconnected { background: rgba(255, 107, 107, 0.1); border-color: rgba(255, 107, 107, 0.3); color: #ff8a8a; }
         .status-bar.connecting { background: rgba(0, 200, 83, 0.1); border-color: rgba(0, 200, 83, 0.3); color: var(--highlight); }
         .status-bar.connected { background: rgba(0, 230, 118, 0.1); border-color: rgba(0, 230, 118, 0.3); color: var(--success); }
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
         .status-bar.connecting .status-dot { animation: pulse 1s infinite; }
 
-        /* ===== CARDS ===== */
-        .card {
-            background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: var(--radius); padding: 24px; margin-bottom: 20px;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .card:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
-        .card-title {
-            font-size: 18px; font-weight: 600; margin-bottom: 16px;
-            display: flex; align-items: center; gap: 10px;
-        }
-        .card-title .icon { font-size: 22px; }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+        .main-grid { display: grid; grid-template-columns: 280px 1fr 300px; gap: 16px; }
+        @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+        
+        .card-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; color: var(--highlight); }
 
-        /* ===== BUTTONS ===== */
         .btn {
-            padding: 12px 24px; border: none; border-radius: 12px;
-            font-size: 14px; font-weight: 600; cursor: pointer;
-            transition: all 0.2s; display: inline-flex;
-            align-items: center; justify-content: center; gap: 8px;
+            padding: 12px 16px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
         }
         .btn:active { transform: scale(0.97); }
         .btn-primary { background: linear-gradient(135deg, var(--highlight), var(--accent-light)); color: white; }
-        .btn-primary:hover:not(:disabled) { box-shadow: 0 4px 20px var(--glow); transform: translateY(-1px); }
+        .btn-primary:hover:not(:disabled) { box-shadow: 0 4px 20px var(--glow); }
         .btn-success { background: linear-gradient(135deg, var(--success), #00b368); color: #000; }
-        .btn-success:hover:not(:disabled) { box-shadow: 0 4px 20px var(--glow-green); transform: translateY(-1px); }
         .btn-danger { background: linear-gradient(135deg, #ff6b6b, #e05555); color: white; }
         .btn-outline { background: transparent; border: 2px solid var(--highlight); color: var(--highlight); }
         .btn-outline:hover:not(:disabled) { background: rgba(0, 200, 83, 0.1); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
-        .btn-sm { padding: 8px 16px; font-size: 13px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-sm { padding: 8px 12px; font-size: 12px; width: auto; }
 
-        /* ===== INPUTS ===== */
-        .input-group { margin-bottom: 16px; }
-        .input-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
+        .input-group { margin-bottom: 14px; }
+        .input-group label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; }
         .input-field {
-            width: 100%; padding: 12px 16px; background: var(--bg-input);
-            border: 2px solid var(--border); border-radius: 12px;
-            color: var(--text-primary); font-size: 15px; transition: border-color 0.2s;
+            width: 100%; padding: 12px; background: var(--bg-input); border: 2px solid var(--border);
+            border-radius: 10px; color: var(--text-primary); font-size: 14px;
         }
         .input-field:focus { outline: none; border-color: var(--highlight); }
-        select.input-field { cursor: pointer; }
+        .input-field.identifier { text-align: center; font-family: monospace; font-size: 16px; letter-spacing: 2px; }
 
-        /* ===== NOW PLAYING ===== */
-        .now-playing {
-            text-align: center; padding: 30px 20px;
-            background: linear-gradient(180deg, rgba(0,200,83,0.05) 0%, transparent 100%);
+        .drop-zone {
+            border: 2px dashed var(--border); border-radius: var(--radius); padding: 24px 16px; text-align: center;
+            cursor: pointer; transition: all 0.3s; position: relative; background: var(--bg-input);
         }
-        .visualizer {
-            display: flex; align-items: flex-end; justify-content: center;
-            gap: 4px; height: 60px; margin-bottom: 20px;
+        .drop-zone:hover, .drop-zone.dragover, .drop-zone:focus {
+            border-color: var(--highlight); background: rgba(0, 200, 83, 0.05); outline: none; box-shadow: 0 0 15px var(--glow);
         }
-        .bar {
-            width: 6px; background: var(--highlight); border-radius: 3px;
-            animation: equalize 1s ease-in-out infinite;
-        }
-        .bar:nth-child(1) { animation-duration: 0.8s; height: 20%; }
-        .bar:nth-child(2) { animation-duration: 1.1s; height: 60%; }
-        .bar:nth-child(3) { animation-duration: 0.9s; height: 40%; }
-        .bar:nth-child(4) { animation-duration: 1.2s; height: 80%; }
-        .bar:nth-child(5) { animation-duration: 0.7s; height: 30%; }
-        .paused .bar { animation-play-state: paused; height: 10% !important; }
-        
-        @keyframes equalize {
-            0%, 100% { transform: scaleY(1); }
-            50% { transform: scaleY(1.5); }
-        }
-
-        .track-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .track-meta { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px; }
-        
-        .player-controls { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 20px; }
-        .control-btn {
-            width: 50px; height: 50px; border-radius: 50%; border: none;
-            background: var(--bg-input); color: var(--text-primary);
-            font-size: 20px; cursor: pointer; transition: all 0.2s;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .control-btn:hover { background: var(--highlight); color: white; transform: scale(1.1); }
-        .control-btn.play { width: 60px; height: 60px; background: var(--highlight); color: white; font-size: 24px; }
-
-        /* ===== ROUTING BADGES ===== */
-        .routing-badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 6px 12px; background: rgba(0, 200, 83, 0.1);
-            border: 1px solid var(--highlight); border-radius: 20px;
-            font-size: 12px; color: var(--highlight); font-weight: 600;
-        }
-
-        /* ===== DROP & PASTE ZONES ===== */
-        .drop-zone, .paste-region {
-            border: 2px dashed var(--border); border-radius: var(--radius);
-            padding: 40px 20px; text-align: center; cursor: pointer;
-            transition: all 0.3s; position: relative; overflow: hidden;
-            background: var(--bg-input);
-        }
-        .drop-zone:hover, .drop-zone.dragover, .paste-region:focus {
-            border-color: var(--highlight); background: rgba(0, 200, 83, 0.05);
-            outline: none;
-        }
-        .drop-zone .icon, .paste-region .icon { font-size: 48px; margin-bottom: 12px; display: block; }
-        .drop-zone p, .paste-region p { color: var(--text-secondary); font-size: 0.9rem; }
+        .drop-zone .drop-icon { font-size: 36px; margin-bottom: 8px; }
+        .drop-zone .drop-text { font-size: 14px; color: var(--text-primary); margin-bottom: 4px; }
+        .drop-zone .drop-subtext { font-size: 11px; color: var(--text-secondary); }
         .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .highlight { color: var(--highlight); font-weight: 700; }
 
-        /* ===== TRACK LIST ===== */
-        .track-list { margin-top: 16px; max-height: 400px; overflow-y: auto; }
-        .track-item {
-            display: flex; align-items: center; gap: 14px;
-            padding: 14px; background: var(--bg-input);
-            border: 1px solid var(--border); border-radius: 12px;
-            margin-bottom: 10px; transition: all 0.2s;
+        .player-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 700; color: var(--highlight); font-size: 14px; }
+        .track-info {
+            background: var(--bg-input); padding: 10px; border-radius: 8px; margin-bottom: 12px;
+            font-size: 13px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary);
         }
-        .track-item:hover { border-color: var(--accent-light); }
-        .track-item.active { border-color: var(--highlight); background: rgba(0, 200, 83, 0.08); }
-        .track-icon { font-size: 28px; flex-shrink: 0; }
-        .track-info { flex: 1; min-width: 0; }
-        .track-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .track-details { font-size: 12px; color: var(--text-secondary); margin-top: 4px; display: flex; gap: 10px; }
-        .track-actions { display: flex; gap: 8px; flex-shrink: 0; }
-
-        /* ===== GRID LAYOUTS ===== */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
-
-        /* ===== TOAST ===== */
-        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-        .toast {
-            padding: 14px 22px; background: var(--bg-card);
-            border: 1px solid var(--border); border-radius: 12px;
-            font-size: 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            animation: toastIn 0.3s ease, toastOut 0.3s ease 3s forwards;
-            display: flex; align-items: center; gap: 10px;
-        }
-        @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(40px); } }
-        .toast.success { border-left: 4px solid var(--success); }
-        .toast.error { border-left: 4px solid #ff6b6b; }
-
-        /* ===== MODAL ===== */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.85); z-index: 2000;
-            display: none; align-items: center; justify-content: center;
-            backdrop-filter: blur(10px); padding: 20px;
-        }
-        .modal-overlay.show { display: flex; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .modal {
-            background: var(--bg-card); border-radius: 20px; padding: 24px;
-            text-align: center; max-width: 400px; width: 100%;
-            border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        }
-        .modal .qr-container { background: white; padding: 16px; border-radius: 16px; display: inline-block; margin: 16px 0; }
-        .modal-close {
-            padding: 12px 30px; border: none; border-radius: 10px;
-            background: var(--highlight); color: white; font-weight: 600;
-            cursor: pointer; font-size: 0.95rem; margin-top: 8px;
-        }
-
-        /* ===== SCROLLBAR ===== */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg-primary); }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-
-        .empty-state { text-align: center; padding: 30px; color: var(--text-secondary); font-size: 14px; }
-        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; background: rgba(0, 200, 83, 0.15); color: var(--highlight); }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <span class="logo">🎵</span>
-            <h1>PossibilityMusic</h1>
-            <p>Live P2P Streaming Player • Auto-Sync • Multi-Zone Routing</p>
-        </header>
-
-        <div id="statusBar" class="status-bar disconnected">
-            <div class="status-dot"></div>
-            <span id="statusText">Disconnected — Start a room or join one</span>
-        </div>
-
-        <!-- NOW PLAYING SECTION -->
-        <div class="card now-playing" id="nowPlayingCard">
-            <div class="visualizer paused" id="visualizer">
-                <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-                <div class="bar"></div><div class="bar"></div>
-            </div>
-            <div class="track-title" id="npTitle">No Track Selected</div>
-            <div class="track-meta" id="npMeta">Add music to begin</div>
-            <div id="npRouting" class="routing-badge" style="display:none; margin: 0 auto 20px;">
-                <span>🔊</span> <span id="npRoutingText">System Default</span>
-            </div>
-            <div class="player-controls">
-                <button class="control-btn" onclick="prevTrack()">⏮</button>
-                <button class="control-btn play" id="playPauseBtn" onclick="togglePlay()">▶</button>
-                <button class="control-btn" onclick="nextTrack()">⏭</button>
-            </div>
-        </div>
-
-        <div class="grid-2">
-            <!-- LEFT: ADD MUSIC -->
-            <div>
-                <div class="card">
-                    <div class="card-title"><span class="icon">📁</span> Add Local Music</div>
-                    <div class="drop-zone" id="dropZone">
-                        <input type="file" id="fileInput" multiple accept="audio/*">
-                        <span class="icon">📥</span>
-                        <p><strong>Drop MP3/Audio files here</strong><br>or tap to browse</p>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-title"><span class="icon">📋</span> Paste from Clipboard</div>
-                    <div class="paste-region" id="pasteRegion" tabindex="0">
-                        <span class="icon">📋</span>
-                        <p><strong>Click here, then press Ctrl+V</strong><br>Paste an MP3 copied from anywhere</p>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-title"><span class="icon">🌐</span> External Media / Social</div>
-                    <div class="input-group" style="margin-bottom:0;">
-                        <input type="text" class="input-field" id="externalUrl" placeholder="https://youtube.com/... or SoundCloud link">
-                        <button class="btn btn-outline" style="width:100%; margin-top:10px;" onclick="addExternalMedia()">Add External Media</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- RIGHT: LIBRARY & ROUTING -->
-            <div>
-                <div class="card">
-                    <div class="card-title">
-                        <span class="icon">🎧</span> Audio Routing & Bluetooth
-                        <button class="btn btn-sm btn-outline" onclick="connectBluetooth()" style="margin-left:auto;">🔗 Connect BT</button>
-                    </div>
-                    <div class="input-group">
-                        <label>Default Output Destination</label>
-                        <select class="input-field" id="outputSelector" onchange="updateDefaultRouting(this.value)">
-                            <option value="default">System Default (Stereo)</option>
-                            <option value="virtual_left">🎧 Left Channel Only</option>
-                            <option value="virtual_right">🎧 Right Channel Only</option>
-                        </select>
-                        <p style="font-size:12px; color:var(--text-secondary); margin-top:6px;">
-                            💡 Tip: You can also route individual tracks below. Connect Bluetooth to see devices here.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-title">
-                        <span class="icon">📚</span> Music Library
-                        <span class="badge" id="trackCount">0</span>
-                    </div>
-                    <div class="track-list" id="trackList">
-                        <div class="empty-state">No tracks yet. Drop, paste, or sync from another device.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- P2P CONNECTION SECTION -->
-        <div class="card">
-            <div class="card-title"><span class="icon">📡</span> P2P Phone Sync & Streaming</div>
-            <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
-                Create a room on your laptop, join from your phone. Any music dragged/dropped here will <strong>automatically download and save</strong> to the connected phone's library for instant offline playback.
-            </p>
-            <div class="grid-2">
-                <div>
-                    <div class="input-group">
-                        <label>Your Device Identifier</label>
-                        <input type="text" class="input-field" id="myIdentifier" placeholder="e.g. laptop-main" value="laptop-main">
-                    </div>
-                    <button class="btn btn-primary" style="width:100%;" onclick="createRoom()">✨ Create Sync Room</button>
-                    <button class="btn btn-outline" style="width:100%; margin-top:8px; display:none;" id="showQrBtn" onclick="showRoomQR()">📱 Show QR to Join</button>
-                </div>
-                <div>
-                    <div class="input-group">
-                        <label>Join Room Identifier</label>
-                        <input type="text" class="input-field" id="joinIdentifier" placeholder="e.g. laptop-main">
-                    </div>
-                    <button class="btn btn-success" style="width:100%;" onclick="joinRoom()">🔗 Join Sync Room</button>
-                </div>
-            </div>
-        </div>
-
-        <footer style="text-align: center; padding: 30px 0; margin-top: auto; color: var(--text-secondary); font-size: 0.8rem;">
-            <p>🔒 True P2P • IndexedDB Local Storage • Web Audio API Routing</p>
-            <p style="margin-top: 5px;">PossibilityMusic © 2026</p>
-        </footer>
-    </div>
-
-    <!-- QR Modal -->
-    <div class="modal-overlay" id="qrModal">
-        <div class="modal">
-            <h3 style="margin-bottom:16px;">📱 Scan to Join Room</h3>
-            <div class="qr-container" id="qrContainer"></div>
-            <p style="color:var(--text-secondary); font-size:0.9rem; margin:8px 0 16px;">Point your phone camera at this QR code</p>
-            <button class="modal-close" onclick="closeQR()">Close</button>
-        </div>
-    </div>
-
-    <div class="toast-container" id="toastContainer"></div>
-
-    <script>
-        // ==================== DATABASE (IndexedDB) ====================
-        const MusicDB = {
-            db: null,
-            async init() {
-                return new Promise((resolve, reject) => {
-                    const request = indexedDB.open('PossibilityMusicDB', 1);
-                    request.onupgradeneeded = (e) => {
-                        const db = e.target.result;
-                        if (!db.objectStoreNames.contains('tracks')) {
-                            db.createObjectStore('tracks', { keyPath: 'id' });
-                        }
-                    };
-                    request.onsuccess = (e) => { this.db = e.target.result; resolve(this.db); };
-                    request.onerror = (e) => reject(e.target.error);
-                });
-            },
-            async saveTrack(track) {
-                return new Promise((resolve, reject) => {
-                    const tx = this.db.transaction('tracks', 'readwrite');
-                    tx.objectStore('tracks').put(track);
-                    tx.oncomplete = () => resolve();
-                    tx.onerror = (e) => reject(e.target.error);
-                });
-            },
-            async getAllTracks() {
-                return new Promise((resolve, reject) => {
-                    const tx = this.db.transaction('tracks', 'readonly');
-                    const request = tx.objectStore('tracks').getAll();
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = (e) => reject(e.target.error);
-                });
-            },
-            async deleteTrack(id) {
-                return new Promise((resolve, reject) => {
-                    const tx = this.db.transaction('tracks', 'readwrite');
-                    tx.objectStore('tracks').delete(id);
-                    tx.oncomplete = () => resolve();
-                    tx.onerror = (e) => reject(e.target.error);
-                });
-            }
-        };
-
-        // ==================== STATE ====================
-        let library = [];
-        let currentTrackIndex = -1;
-        let currentAudio = null;
-        let audioCtx = null;
-        let defaultRouting = 'default';
+        .track-info.active { color: var(--highlight); font-weight: 700; border: 1px solid var(--highlight); box-shadow: 0 0 10px var(--glow); }
         
-        // P2P State
-        let peer = null;
-        let connections = {};
-        let isHost = false;
-        let receivedFiles = {};
-        const CHUNK_SIZE = 16384;
-
-        // ==================== INITIALIZATION ====================
-        document.addEventListener('DOMContentLoaded', async () => {
-            await MusicDB.init();
-            await loadLibrary();
-            refreshAudioOutputs();
-            
-            // Request audio output permissions implicitly by user interaction hint
-            document.body.addEventListener('click', async () => {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (audioCtx.state === 'suspended') {
-                    await audioCtx.resume();
-                }
-            }, { once: true });
-        });
-
-        // ==================== AUDIO ENGINE & ROUTING ====================
-        function getAudioContext() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            return audioCtx;
+        .player-controls { display: flex; justify-content: center; gap: 16px; margin-bottom: 16px; }
+        .player-controls button {
+            background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary);
+            width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px;
+            transition: all 0.2s; display: flex; align-items: center; justify-content: center;
         }
+        .player-controls button:hover { background: var(--highlight); color: white; border-color: var(--highlight); }
+        .player-controls button.play-btn { width: 48px; height: 48px; font-size: 22px; background: var(--highlight); color: white; border: none; }
 
-        async function refreshAudioOutputs() {
-            try {
-                // Note: Labels require user to have granted media permissions previously
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
-                const select = document.getElementById('outputSelector');
-                
-                // Keep virtual options, clear others
-                select.innerHTML = `
-                    <option value="default">System Default (Stereo)</option>
-                    <option value="virtual_left">🎧 Left Channel Only</option>
-                    <option value="virtual_right">🎧 Right Channel Only</option>
-                `;
-                
-                audioOutputs.forEach(d => {
-                    if (d.deviceId !== 'default') {
-                        const opt = document.createElement('option');
-                        opt.value = d.deviceId;
-                        opt.textContent = `🔊 ${d.label || 'Bluetooth/Audio Device'}`;
-                        select.appendChild(opt);
-                    }
-                });
-            } catch (err) {
-                console.log('Device enumeration requires HTTPS/localhost and permissions');
-            }
-        }
-
-        function updateDefaultRouting(value) {
-            defaultRouting = value;
-            showToast(`🔊 Default routing set to: ${value.replace('virtual_', '').replace('default', 'System Stereo')}`);
-        }
-
-        async function playTrack(index, specificRouting = null) {
-            if (index < 0 || index >= library.length) return;
-            
-            currentTrackIndex = index;
-            const track = library[index];
-            const routing = specificRouting || defaultRouting;
-
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio = null;
-            }
-
-            const audio = new Audio();
-            audio.src = URL.createObjectURL(track.blob);
-            
-            // Update UI
-            document.getElementById('npTitle').textContent = track.name;
-            document.getElementById('npMeta').textContent = `${formatSize(track.size)} • Play count: ${track.playCount || 0}`;
-            document.getElementById('visualizer').classList.remove('paused');
-            document.getElementById('playPauseBtn').textContent = '⏸';
-            
-            const npRouting = document.getElementById('npRouting');
-            const npRoutingText = document.getElementById('npRoutingText');
-            npRouting.style.display = 'inline-flex';
-            npRoutingText.textContent = routing === 'default' ? 'System Default (Stereo)' : 
-                                        routing === 'virtual_left' ? 'Left Channel Only' : 
-                                        routing === 'virtual_right' ? 'Right Channel Only' : 'Bluetooth/External Device';
-
-            // Routing Logic
-            if (routing === 'virtual_left' || routing === 'virtual_right') {
-                const ctx = getAudioContext();
-                const source = ctx.createMediaElementSource(audio);
-                const panner = ctx.createStereoPanner();
-                panner.pan.value = routing === 'virtual_left' ? -1 : 1;
-                source.connect(panner).connect(ctx.destination);
-            } else if (routing !== 'default') {
-                if (audio.setSinkId) {
-                    try {
-                        await audio.setSinkId(routing);
-                    } catch (err) {
-                        showToast('⚠️ Could not route to selected device. Check permissions.', 'error');
-                    }
-                } else {
-                    showToast('⚠️ Your browser does not support setSinkId for device routing.', 'error');
-                }
-            }
-
-            currentAudio = audio;
-            await audio.play().catch(e => console.error("Playback failed", e));
-            
-            // Increment play count
-            track.playCount = (track.playCount || 0) + 1;
-            MusicDB.saveTrack(track);
-            
-            // Auto-advance
-            audio.addEventListener('ended', () => {
-                nextTrack();
-            });
-
-            renderLibrary();
-        }
-
-        function togglePlay() {
-            if (!currentAudio) {
-                if (library.length > 0) playTrack(0);
-                return;
-            }
-            if (currentAudio.paused) {
-                currentAudio.play();
-                document.getElementById('visualizer').classList.remove('paused');
-                document.getElementById('playPauseBtn').textContent = '⏸';
-            } else {
-                currentAudio.pause();
-                document.getElementById('visualizer').classList.add('paused');
-                document.getElementById('playPauseBtn').textContent = '▶';
-            }
-        }
-
-        function nextTrack() {
-            if (library.length === 0) return;
-            const next = (currentTrackIndex + 1) % library.length;
-            playTrack(next);
-        }
-
-        function prevTrack() {
-            if (library.length === 0) return;
-            const prev = (currentTrackIndex - 1 + library.length) % library.length;
-            playTrack(prev);
-        }
-
-        // ==================== FILE HANDLING (DROP & PASTE) ====================
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
-        const pasteRegion = document.getElementById('pasteRegion');
-
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            Array.from(e.dataTransfer.files).forEach(file => {
-                if (file.type.startsWith('audio/') || file.name.endsWith('.mp3')) {
-                    processMusicFile(file);
-                }
-            });
-        });
-        fileInput.addEventListener('change', (e) => {
-            Array.from(e.target.files).forEach(file => processMusicFile(file));
-            fileInput.value = '';
-        });
-
-        // PASTE REGION LOGIC
-        pasteRegion.addEventListener('click', () => {
-            pasteRegion.focus();
-            showToast('📋 Ready to paste. Press Ctrl+V (or Cmd+V)');
-        });
+        .seek-control { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 11px; color: var(--text-secondary); font-family: monospace; }
+        .seek-control input[type="range"] { flex: 1; accent-color: var(--highlight); cursor: pointer; height: 6px; }
         
-        pasteRegion.addEventListener('paste', async (e) => {
-            const items = e.clipboardData.items;
-            let handled = false;
-            for (let item of items) {
-                if (item.kind === 'file' && (item.type.startsWith('audio/') || item.name.endsWith('.mp3'))) {
-                    const file = item.getAsFile();
-                    await processMusicFile(file);
-                    handled = true;
-                }
-            }
-            if (handled) {
-                showToast('🎵 Music pasted and added to library!');
-                e.preventDefault();
-            } else {
-                showToast('⚠️ No audio file found in clipboard', 'error');
-            }
-        });
-
-        // Global paste fallback
-        window.addEventListener('paste', async (e) => {
-            if (document.activeElement === pasteRegion) return; // Already handled
-            const items = e.clipboardData.items;
-            for (let item of items) {
-                if (item.kind === 'file' && (item.type.startsWith('audio/') || item.name.endsWith('.mp3'))) {
-                    const file = item.getAsFile();
-                    await processMusicFile(file);
-                    showToast('🎵 Music pasted from clipboard!');
-                    e.preventDefault();
-                    return;
-                }
-            }
-        });
-
-        async function processMusicFile(file) {
-            const id = 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-            const track = {
-                id: id,
-                name: file.name,
-                size: file.size,
-                type: file.type || 'audio/mpeg',
-                blob: file,
-                addedDate: Date.now(),
-                playCount: 0,
-                source: 'local'
-            };
-            
-            await MusicDB.saveTrack(track);
-            library.push(track);
-            renderLibrary();
-            showToast(`✅ Added: ${file.name}`);
-            
-            // If peers connected, auto-sync to phones
-            announceAndSendFile(track);
+        .pan-control { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px; color: var(--text-secondary); }
+        .pan-control input[type="range"] { flex: 1; accent-color: var(--highlight); }
+        .pan-buttons { display: flex; gap: 4px; margin-top: 6px; width: 100%; }
+        .pan-buttons button {
+            flex: 1; padding: 6px; font-size: 11px; background: var(--bg-input);
+            border: 1px solid var(--border); color: var(--text-secondary); border-radius: 6px; cursor: pointer;
         }
-
-        function addExternalMedia() {
-            const url = document.getElementById('externalUrl').value.trim();
-            if (!url) return;
-            
-            const id = 'ext_' + Date.now();
-            const track = {
-                id: id,
-                name: 'External Media: ' + url.substring(0, 30) + '...',
-                size: 0,
-                type: 'text/external',
-                url: url,
-                addedDate: Date.now(),
-                playCount: 0,
-                source: 'external'
-            };
-            
-            MusicDB.saveTrack(track);
-            library.push(track);
-            renderLibrary();
-            document.getElementById('externalUrl').value = '';
-            showToast('🌐 External media link added');
+        .pan-buttons button:hover, .pan-buttons button.active { border-color: var(--highlight); color: var(--highlight); background: rgba(0,200,83,0.1); }
+        
+        .device-control { margin-bottom: 12px; font-size: 12px; }
+        .device-control select {
+            width: 100%; padding: 8px; margin-top: 4px; background: var(--bg-input);
+            border: 1px solid var(--border); color: var(--text-primary); border-radius: 8px; font-size: 12px;
         }
-
-        async function loadLibrary() {
-            library = await MusicDB.getAllTracks();
-            renderLibrary();
-        }
-
-        function renderLibrary() {
-            const list = document.getElementById('trackList');
-            document.getElementById('trackCount').textContent = library.length;
-            
-            if (library.length === 0) {
-                list.innerHTML = '<div class="empty-state">No tracks yet. Drop, paste, or sync from another device.</div>';
-                return;
-            }
-            
-            list.innerHTML = '';
-            library.forEach((track, index) => {
-                const div = document.createElement('div');
-                div.className = `track-item ${index === currentTrackIndex ? 'active' : ''}`;
-                
-                const isExternal = track.source === 'external';
-                const icon = isExternal ? '🌐' : '🎵';
-                
-                div.innerHTML = `
-                    <div class="track-icon">${icon}</div>
-                    <div class="track-info">
-                        <div class="track-name" title="${track.name}">${track.name}</div>
-                        <div class="track-details">
-                            <span>${isExternal ? 'Link' : formatSize(track.size)}</span>
-                            <span>•</span>
-                            <span>▶ ${track.playCount || 0}</span>
-                        </div>
-                    </div>
-                    <div class="track-actions">
-                        <select class="input-field" style="width:auto; padding:6px 10px; font-size:12px;" onchange="playTrack(${index}, this.value)">
-                            <option value="default">Stereo</option>
-                            <option value="virtual_left">Left</option>
-                            <option value="virtual_right">Right</option>
-                        </select>
-                        <button class="btn btn-sm btn-primary" onclick="playTrack(${index})">▶</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteTrack('${track.id}')">✕</button>
-                    </div>
-                `;
-                list.appendChild(div);
-            });
-        }
-
-        async function deleteTrack(id) {
-            await MusicDB.deleteTrack(id);
-            library = library.filter(t => t.id !== id);
-            if (currentAudio && library.length === 0) {
-                currentAudio.pause();
-                currentAudio = null;
-                document.getElementById('npTitle').textContent = 'No Track Selected';
-                document.getElementById('npMeta').textContent = 'Add music to begin';
-                document.getElementById('visualizer').classList.add('paused');
-                document.getElementById('playPauseBtn').textContent = '▶';
-                document.getElementById('npRouting').style.display = 'none';
-            }
-            renderLibrary();
-            showToast('🗑️ Track removed');
-        }
-
-        // ==================== BLUETOOTH & DEVICES ====================
-        async function connectBluetooth() {
-            try {
-                // Request any Bluetooth device (user will see system picker)
-                const device = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: ['battery_service', 'device_information']
-                });
-                showToast(`✅ Connected to ${device.name || 'Bluetooth Device'}`);
-                
-                // Refresh outputs to see if OS registered it as audio output
-                setTimeout(refreshAudioOutputs, 1500);
-            } catch (err) {
-                console.error(err);
-                showToast('⚠️ Bluetooth connection cancelled or failed', 'error');
-            }
-        }
-
-        // ==================== P2P SYNC ENGINE ====================
-        function createRoom() {
-            const identifier = document.getElementById('myIdentifier').value.trim() || 'music-host';
-            if (peer) peer.destroy();
-            
-            setStatus('connecting', 'Creating room...');
-            peer = new Peer(identifier, {
-                config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-            });
-
-            peer.on('open', (id) => {
-                isHost = true;
-                document.getElementById('showQrBtn').style.display = 'inline-flex';
-                setStatus('connected', `Room "${id}" active — waiting for phones...`);
-                showToast(`✅ Room created: ${id}`);
-            });
-
-            peer.on('connection', handleConnection);
-            peer.on('error', (err) => showToast(`❌ ${err.type}`, 'error'));
-        }
-
-        function joinRoom() {
-            const identifier = document.getElementById('joinIdentifier').value.trim();
-            if (!identifier) return showToast('⚠️ Enter an identifier', 'error');
-            
-            if (peer) peer.destroy();
-            setStatus('connecting', 'Joining room...');
-            
-            const uniqueId = identifier + '_client_' + Math.random().toString(36).substr(2, 4);
-            peer = new Peer(uniqueId, {
-                config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-            });
-
-            peer.on('open', () => {
-                const conn = peer.connect(identifier, { reliable: true });
-                handleConnection(conn);
-            });
-            
-            peer.on('error', (err) => {
-                showToast(`❌ Cannot join: ${err.type}`, 'error');
-                setStatus('disconnected', 'Disconnected');
-            });
-        }
-
-        function handleConnection(conn) {
-            setStatus('connecting', 'Syncing...');
-            conn.on('open', () => {
-                connections[conn.peer] = conn;
-                setStatus('connected', `${Object.keys(connections).length} device(s) connected`);
-                showToast('🎉 Device connected for auto-sync!');
-                
-                // Send existing library metadata to new peer
-                library.forEach(track => {
-                    if (track.source !== 'external') {
-                        conn.send({ type: 'announce', id: track.id, name: track.name, size: track.size, type: track.type });
-                    }
-                });
-            });
-
-            conn.on('data', (data) => {
-                if (data.type === 'announce') {
-                    // Peer is telling us they have this, or we are receiving announcement
-                } else if (data.type === 'file') {
-                    receiveFileChunk(data, conn.peer);
-                }
-            });
-
-            conn.on('close', () => {
-                delete connections[conn.peer];
-                setStatus('connected', `${Object.keys(connections).length} device(s) connected`);
-            });
-        }
-
-        function announceAndSendFile(track) {
-            if (!isHost || Object.keys(connections).length === 0) return;
-            
-            // Announce first
-            Object.values(connections).forEach(conn => {
-                conn.send({ type: 'announce', id: track.id, name: track.name, size: track.size, type: track.type });
-            });
-
-            // Then send chunks
-            const reader = new FileReader();
-            let offset = 0;
-            
-            function sendChunk() {
-                const chunk = track.blob.slice(offset, offset + CHUNK_SIZE);
-                reader.readAsArrayBuffer(chunk);
-            }
-            
-            reader.onload = (e) => {
-                const data = {
-                    type: 'file',
-                    fileId: track.id,
-                    fileName: track.name,
-                    fileType: track.type,
-                    fileSize: track.size,
-                    chunk: e.target.result,
-                    offset: offset,
-                    lastChunk: offset + CHUNK_SIZE >= track.size
-                };
-                
-                Object.values(connections).forEach(conn => {
-                    try { conn.send(data); } catch(e) {}
-                });
-                
-                offset += CHUNK_SIZE;
-                if (offset < track.size) {
-                    sendChunk();
-                } else {
-                    showToast(`📡 Synced ${track.name} to connected devices`);
-                }
-            };
-            sendChunk();
-        }
-
-        function receiveFileChunk(data, fromPeer) {
-            if (!receivedFiles[data.fileId]) {
-                receivedFiles[data.fileId] = {
-                    chunks: [],
-                    received: 0,
-                    total: data.fileSize,
-                    name: data.fileName,
-                    type: data.fileType
-                };
-            }
-            
-            const rf = receivedFiles[data.fileId];
-            rf.chunks[data.offset] = data.chunk;
-            rf.received += data.chunk.byteLength;
-            
-            if (data.lastChunk) {
-                const blob = new Blob(Object.values(rf.chunks).filter(c => c), { type: rf.type });
-                const track = {
-                    id: data.fileId,
-                    name: data.fileName,
-                    size: data.fileSize,
-                    type: data.fileType,
-                    blob: blob,
-                    addedDate: Date.now(),
-                    playCount: 0,
-                    source: 'p2p-sync'
-                };
-                
-                MusicDB.saveTrack(track).then(() => {
-                    library.push(track);
-                    renderLibrary();
-                    showToast(`📥 Auto-downloaded & saved: ${data.fileName}`);
-                    delete receivedFiles[data.fileId];
-                });
-            }
-        }
-
-        // ==================== UTILITIES ====================
-        function formatSize(bytes) {
-            if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-        }
-
-        function setStatus(type, text) {
-            const bar = document.getElementById('statusBar');
-            bar.className = `status-bar ${type}`;
-            document.getElementById('statusText').textContent = text;
-        }
-
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.textContent = message;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 3500);
-        }
-
-        function showRoomQR() {
-            const id = document.getElementById('myIdentifier').value.trim();
-            const url = `${window.location.origin}${window.location.pathname}#join=${encodeURIComponent(id)}`;
-            document.getElementById('qrContainer').innerHTML = '';
-            new QRCode(document.getElementById('qrContainer'), { text: url, width: 200, height: 200 });
-            document.getElementById('qrModal').classList.add('show');
-        }
-
-        function closeQR() {
-            document.getElementById('qrModal').classList.remove('show');
-        }
-
-        // Auto-join from URL hash
-        if (window.location.hash.startsWith('#join=')) {
-            const id = decodeURIComponent(window.location.hash.split('#join=')[1]);
-            document.getElementById('joinIdentifier').value = id;
-            setTimeout(joinRoom, 500);
-            history.replaceState(null, null, window.location.pathname);
-        }
-    </script>
-</body>
-</html>
+        .player-playlist { max-height: 150px; overflow-y: auto; margin-bottom: 12px; border-top: 
