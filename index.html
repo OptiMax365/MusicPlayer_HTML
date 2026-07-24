@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 POSSIBILITYDATA — Live Stream & P2P Music Sync</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+    <style>
+        /* ===== GREEN THEME ===== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0f0a; --bg-secondary: #0f1a0f; --bg-card: #1a2e1a;
+            --bg-input: #142a14; --accent: #1a5f1a; --accent-light: #2d862d;
+            --highlight: #00c853; --text-primary: #ffffff; --text-secondary: #a8d8a8;
+            --success: #00e676; --warning: #ffb74d; --border: #2a4a2a;
+            --glow: rgba(0, 200, 83, 0.35); --glow-green: rgba(0, 230, 118, 0.4);
+            --radius: 16px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary); color: var(--text-primary);
+            min-height: 100vh; overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle at 30% 40%, rgba(0, 200, 83, 0.06) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 60%, rgba(0, 230, 118, 0.04) 0%, transparent 50%);
+            animation: bgFloat 20s ease-in-out infinite;
+            z-index: -1; pointer-events: none;
+        }
+
+        @keyframes bgFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(-2%, -2%) rotate(1deg); }
+        }
+
+        .container { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; }
+        
+        header { text-align: center; padding: 30px 0 20px; }
+        .logo { font-size: 3rem; margin-bottom: 5px; animation: pulse 2s infinite; display: inline-block; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        header h1 { 
+            font-size: 2rem; font-weight: 800; 
+            background: linear-gradient(135deg, var(--highlight), var(--accent-light), #66bb6a); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; 
+        }
+        header p { color: var(--text-secondary); margin-top: 8px; font-size: 0.95rem; }
+        
+        /* ===== STATUS BAR ===== */
+        .status-bar {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 18px; border-radius: 12px;
+            margin-bottom: 20px; font-size: 14px; font-weight: 500;
+            border: 1px solid var(--border);
+        }
+        .status-bar.disconnected { background: rgba(255, 107, 107, 0.1); border-color: rgba(255, 107, 107, 0.3); color: #ff8a8a; }
+        .status-bar.connecting { background: rgba(0, 200, 83, 0.1); border-color: rgba(0, 200, 83, 0.3); color: var(--highlight); }
+        .status-bar.connected { background: rgba(0, 230, 118, 0.1); border-color: rgba(0, 230, 118, 0.3); color: var(--success); }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+        .status-bar.connecting .status-dot { animation: pulse 1s infinite; }
+
+        /* ===== CARDS & LAYOUT ===== */
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 20px; margin-bottom: 20px;
+        }
+        .main-grid {
+            display: grid; grid-template-columns: 280px 1fr 320px; gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+        .card-title {
+            font-size: 16px; font-weight: 600; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 10px; color: var(--highlight);
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            padding: 12px 20px; border: none; border-radius: 12px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; display: inline-flex;
+            align-items: center; justify-content: center; gap: 8px; width: 100%;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: linear-gradient(135deg, var(--highlight), var(--accent-light)); color: white; }
+        .btn-primary:hover:not(:disabled) { box-shadow: 0 4px 20px var(--glow); transform: translateY(-1px); }
+        .btn-success { background: linear-gradient(135deg, var(--success), #00b368); color: #000; }
+        .btn-danger { background: linear-gradient(135deg, #ff6b6b, #e05555); color: white; }
+        .btn-outline { background: transparent; border: 2px solid var(--highlight); color: var(--highlight); }
+        .btn-outline:hover:not(:disabled) { background: rgba(0, 200, 83, 0.1); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; width: auto; }
+
+        /* ===== INPUTS ===== */
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
+        .input-field {
+            width: 100%; padding: 12px; background: var(--bg-input); border: 2px solid var(--border);
+            border-radius: 10px; color: var(--text-primary); font-size: 14px;
+        }
+        .input-field:focus { outline: none; border-color: var(--highlight); }
+        .input-field.identifier { text-align: center; font-family: monospace; font-size: 16px; letter-spacing: 2px; }
+
+        /* ===== DROP & PASTE ZONE ===== */
+        .drop-zone {
+            border: 2px dashed var(--border); border-radius: var(--radius);
+            padding: 30px 20px; text-align: center; cursor: pointer;
+            transition: all 0.3s; position: relative; background: var(--bg-input);
+        }
+        .drop-zone:hover, .drop-zone.dragover, .drop-zone:focus {
+            border-color: var(--highlight); background: rgba(0, 200, 83, 0.05);
+            outline: none; box-shadow: 0 0 15px var(--glow);
+        }
+        .drop-zone .drop-icon { font-size: 40px; margin-bottom: 8px; }
+        .drop-zone .drop-text { font-size: 15px; color: var(--text-primary); margin-bottom: 4px; }
+        .drop-zone .drop-subtext { font-size: 12px; color: var(--text-secondary); }
+        .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .highlight { color: var(--highlight); font-weight: 600; }
+
+        /* ===== PLAYER CARD ===== */
+        .player-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+        }
+        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 600; color: var(--highlight); font-size: 14px; }
+        .track-info {
+            background: var(--bg-input); padding: 10px; border-radius: 8px;
+            margin-bottom: 12px; font-size: 13px; text-align: center;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary);
+        }
+        .track-info.active { color: var(--highlight); font-weight: 600; border: 1px solid var(--highlight); }
+        .player-controls { display: flex; justify-content: center; gap: 12px; margin-bottom: 16px; }
+        .player-controls button {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            color: var(--text-primary); width: 36px; height: 36px; border-radius: 50%;
+            cursor: pointer; font-size: 16px; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+        }
+        .player-controls button:hover { background: var(--highlight); color: white; border-color: var(--highlight); }
+        
+        .pan-control { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px; color: var(--text-secondary); }
+        .pan-control input[type="range"] { flex: 1; accent-color: var(--highlight); }
+        .pan-buttons { display: flex; gap: 4px; margin-top: 6px; width: 100%; }
+        .pan-buttons button {
+            flex: 1; padding: 6px; font-size: 11px; background: var(--bg-input);
+            border: 1px solid var(--border); color: var(--text-secondary); border-radius: 6px; cursor: pointer;
+        }
+        .pan-buttons button:hover, .pan-buttons button.active { border-color: var(--highlight); color: var(--highlight); }
+        
+        .device-control { margin-bottom: 12px; font-size: 12px; }
+        .device-control select {
+            width: 100%; padding: 8px; margin-top: 4px; background: var(--bg-input);
+            border: 1px solid var(--border); color: var(--text-primary); border-radius: 8px; font-size: 12px;
+        }
+        .player-playlist { max-height: 120px; overflow-y: auto; margin-bottom: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
+        .playlist-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 8px; font-size: 12px; border-radius: 6px; cursor: pointer; color: var(--text-secondary);
+        }
+        .playlist-item:hover { background: var(--bg-secondary); color: var(--text-primary); }
+        .playlist-item.active { color: var(--highlight); font-weight: 600; background: rgba(0, 200, 83, 0.1); }
+
+        /* ===== FILE LIST / LIBRARY ===== */
+        .file-list { margin-top: 10px; max-height: 400px; overflow-y: auto; }
+        .file-item {
+            display: flex; align-items: center; gap: 12px; padding: 10px;
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px;
+        }
+        .file-icon { font-size: 24px; flex-shrink: 0; width: 32px; text-align: center; }
+        .file-info { flex: 1; min-width: 0; }
+        .file-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+        .file-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .file-btn {
+            padding: 6px 10px; border: none; border-radius: 6px;
+            font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }
+        .file-btn.download { background: var(--highlight); color: white; }
+        .file-btn.remove { background: rgba(255, 107, 107, 0.15); color: #ff8a8a; }
+        .file-btn.remove:hover { background: rgba(255, 107, 107, 0.25); }
+
+        /* ===== MODAL & TOAST ===== */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85); z-index: 2000;
+            display: none; align-items: center; justify-content: center;
+            backdrop-filter: blur(10px); padding: 20px;
+        }
+        .modal-overlay.show { display: flex; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal {
+            background: var(--bg-card); border-radius: 20px; padding: 24px; text-align: center;
+            max-width: 400px; width: 100%; border: 1px solid var(--border);
+        }
+        .modal .qr-container { background: white; padding: 16px; border-radius: 16px; display: inline-block; margin: 16px 0; }
+        .modal-close {
+            padding: 10px 24px; border: none; border-radius: 10px;
+            background: var(--highlight); color: white; font-weight: 600; cursor: pointer; margin-top: 8px;
+        }
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        .toast {
+            padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+            font-size: 13px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); animation: toastIn 0.3s ease, toastOut 0.3s ease 3s forwards;
+        }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(40px); } }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid #ff6b6b; }
+
+        .section { display: none; animation: fadeIn 0.4s ease; }
+        .section.active { display: block; }
+        .empty-state { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 13px; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: rgba(0, 200, 83, 0.15); color: var(--highlight); }
+        .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        footer { text-align: center; padding: 20px 0; margin-top: auto; color: var(--text-secondary); font-size: 0.75rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <span class="logo">🎵</span>
+            <h1>PossibilityData</h1>
+            <p>Live Streaming Music Player & P2P Auto-Sync</p>
+        </header>
+
+        <!-- SETUP SCREEN -->
+        <div id="setupScreen" class="section active">
+            <div class="card" style="max-width: 500px; margin: 0 auto;">
+                <div class="card-title"><span>🚀</span> Create or Join Music Room</div>
+                <div class="input-group">
+                    <label>Your Device Identifier</label>
+                    <input type="text" class="input-field identifier" id="myIdentifier" placeholder="e.g. laptop-main" maxlength="30">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button class="btn btn-primary" id="createRoomBtn" onclick="createRoom()">✨ Create Room</button>
+                    <div>
+                        <input type="text" class="input-field identifier" id="joinIdentifier" placeholder="Room ID" style="margin-bottom: 8px;">
+                        <button class="btn btn-success" id="joinRoomBtn" onclick="joinRoom()">🔗 Join</button>
+                    </div>
+                </div>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 16px; text-align: center; line-height: 1.5;">
+                    💡 <strong>How it works:</strong> Create a room on your laptop. Join from your phone. Drop or paste MP3s on the laptop, and they auto-download to the phone for instant playback!
+                </p>
+            </div>
+        </div>
+
+        <!-- MAIN APP SCREEN -->
+        <div id="roomScreen" class="section">
+            <div id="statusBar" class="status-bar disconnected">
+                <div class="status-dot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+
+            <div class="main-grid">
+                <!-- LEFT: P2P & DEVICES -->
+                <div>
+                    <div class="card">
+                        <div class="card-title"><span>📡</span> Room Info</div>
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                            <input type="text" class="input-field" id="roomCodeDisplay" readonly style="text-align: center; font-family: monospace;">
+                            <button class="btn btn-outline btn-sm" onclick="copyRoomCode()" style="width: auto;">📋</button>
+                            <button class="btn btn-outline btn-sm" onclick="showRoomQR()" style="width: auto;">📱</button>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="leaveRoom()">🚪 Leave Room</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title"><span>🎧</span> Audio Devices</div>
+                        <button class="btn btn-primary btn-sm" onclick="connectBluetooth()" style="margin-bottom: 12px;">
+                            📶 Connect Bluetooth Device
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="requestDevicePermissions()" style="margin-bottom: 12px;">
+                            🔓 Enable Device Labels
+                        </button>
+                        <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">
+                            Note: Browsers restrict routing external apps' audio. Use multiple in-app players below to route different songs to different devices.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- CENTER: PLAYERS -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div class="card-title" style="margin: 0;"><span>🎛️</span> Audio Players</div>
+                        <button class="btn btn-outline btn-sm" onclick="addPlayer()" style="width: auto;">+ Add Player</button>
+                    </div>
+                    <div id="playersContainer">
+                        <!-- Players injected here -->
+                    </div>
+                </div>
+
+                <!-- RIGHT: LIBRARY & INGEST -->
+                <div>
+                    <div class="card">
+                        <div class="card-title"><span>📥</span> Add Music</div>
+                        <div class="drop-zone" id="globalDropZone" tabindex="0">
+                            <input type="file" id="fileInput" multiple accept="audio/*">
+                            <div class="drop-icon">🎵</div>
+                            <div class="drop-text">Drop MP3s here or <span class="highlight">Click & Ctrl+V</span></div>
+                            <div class="drop-subtext">Auto-syncs to connected devices</div>
+                        </div>
+                        
+                        <div class="input-group" style="margin-top: 16px; margin-bottom: 0;">
+                            <label>Or Stream from URL (Social Media / Direct)</label>
+                            <div style="display: flex; gap: 6px;">
+                                <input type="text" class="input-field" id="streamUrl" placeholder="https://...mp3">
+                                <button class="btn btn-primary btn-sm" onclick="addStreamUrl()" style="width: auto;">Add</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title"><span>📚</span> Library <span class="badge" id="libCount">0</span></div>
+                        <div class="file-list" id="libraryList">
+                            <div class="empty-state">No tracks yet. Drop, paste, or add URLs!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>🔒 True P2P sync — files transfer directly between devices. IndexedDB caches tracks for instant phone playback.</p>
+            <p style="margin-top: 5px;">PossibilityData © 2026</p>
+        </footer>
+    </div>
+
+    <!-- QR Modal -->
+    <div class="modal-overlay" id="qrModal">
+        <div class="modal">
+            <h3 style="margin-bottom: 12px;">📱 Scan to Join Room</h3>
+            <div class="qr-container" id="qrContainer"></div>
+            <button class="modal-close" onclick="closeQR()">Close</button>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // ==================== INDEXED DB SETUP ====================
+        const dbPromise = new Promise((resolve, reject) => {
+            const request = indexedDB.open('PossibilityMusicDB', 1);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains('metadata')) db.createObjectStore('metadata', { keyPath: 'id' });
+                if (!db.objectStoreNames.contains('blobs')) db.createObjectStore('blobs', { keyPath: 'id' });
+            };
+            request.onsuccess = (e) => resolve(e.target.result);
+            request.onerror = (e) => reject(e);
+        });
+
+        async function saveMetadata(meta) {
+            const db = await dbPromise;
+            const tx = db.transaction('metadata', 'readwrite');
+            tx.objectStore('metadata').put(meta);
+        }
+
+        async function saveBlob(id, blob) {
+            const db = await dbPromise;
+            const tx = db.transaction('blobs', 'readwrite');
+            tx.objectStore('blobs').put({ id, blob });
+        }
+
+        async function getBlob(id) {
+            const db = await dbPromise;
+            return new Promise((resolve) => {
+                const tx = db.transaction('blobs', 'readonly');
+                const req = tx.objectStore('blobs').get(id);
+                req.onsuccess = () => resolve(req.result ? req.result.blob : null);
+            });
+        }
+
+        async function getAllMetadata() {
+            const db = await dbPromise;
+            return new Promise((resolve) => {
+                const tx = db.transaction('metadata', 'readonly');
+                const req = tx.objectStore('metadata').getAll();
+                req.onsuccess = () => resolve(req.result);
+            });
+        }
+
+        async function deleteTrack(id) {
+            const db = await dbPromise;
+            let tx = db.transaction('metadata', 'readwrite');
+            tx.objectStore('metadata').delete(id);
+            tx = db.transaction('blobs', 'readwrite');
+            tx.objectStore('blobs').delete(id);
+            renderLibrary();
+            showToast('🗑️ Track removed');
+        }
+
+        // ==================== STATE & UTILS ====================
+        let peer = null, connections = {}, isHost = false, myPeerId = '';
+        const players = {};
+        let playerCounter = 0;
+        const receivingTracks = {};
+
+        function generateId(length = 6) {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let result = '';
+            for (let i = 0; i < length; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
+            return result;
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3500);
+        }
+
+        function setStatus(type, text) {
+            const bar = document.getElementById('statusBar');
+            bar.className = `status-bar ${type}`;
+            document.getElementById('statusText').textContent = text;
+        }
+
+        // ==================== MUSIC PLAYER CLASS ====================
+        class MusicPlayer {
+            constructor(id) {
+                this.id = id;
+                this.audio = new Audio();
+                this.audio.crossOrigin = "anonymous";
+                this.playlist = [];
+                this.currentIndex = -1;
+                this.isPlaying = false;
+                
+                // Web Audio API for Left/Right Panning
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.source = this.audioContext.createMediaElementSource(this.audio);
+                this.panner = this.audioContext.createStereoPanner();
+                this.source.connect(this.panner);
+                this.panner.connect(this.audioContext.destination);
+                
+                this.audio.addEventListener('ended', () => this.playNext());
+                this.render();
+            }
+
+            setPan(value) {
+                this.panner.pan.value = parseFloat(value);
+                // Update UI buttons
+                const card = document.getElementById(`player-${this.id}`);
+                card.querySelectorAll('.pan-buttons button').forEach(btn => btn.classList.remove('active'));
+                if (value == -1) card.querySelector('.pan-left').classList.add('active');
+                else if (value == 1) card.querySelector('.pan-right').classList.add('active');
+                else card.querySelector('.pan-center').classList.add('active');
+            }
+
+            async setOutput(deviceId) {
+                if (deviceId && this.audio.setSinkId) {
+                    try {
+                        await this.audio.setSinkId(deviceId);
+                        showToast(`✅ Player ${this.id} routed to device`);
+                    } catch (e) {
+                        showToast('⚠️ Cannot route to this device (HTTPS/Permission required)', 'error');
+                    }
+                } else if (!this.audio.setSinkId) {
+                    showToast('⚠️ Device routing not supported in this browser', 'error');
+                }
+            }
+
+            async loadTrack(track) {
+                this.currentTrack = track;
+                if (track.isStream) {
+                    this.audio.src = track.url;
+                } else {
+                    const blob = await getBlob(track.id);
+                    if (blob) {
+                        if (this.audio.src) URL.revokeObjectURL(this.audio.src);
+                        this.audio.src = URL.createObjectURL(blob);
+                    }
+                }
+                this.updateUI();
+            }
+
+            play() {
+                if (!this.currentTrack) return;
+                this.audioContext.resume().then(() => {
+                    this.audio.play();
+                    this.isPlaying = true;
+                    this.updateUI();
+                });
+            }
+
+            pause() {
+                this.audio.pause();
+                this.isPlaying = false;
+                this.updateUI();
+            }
+
+            togglePlay() {
+                if (this.isPlaying) this.pause();
+                else this.play();
+            }
+
+            playNext() {
+                if (this.currentIndex < this.playlist.length - 1) {
+                    this.currentIndex++;
+                    this.loadTrack(this.playlist[this.currentIndex]).then(() => this.play());
+                } else {
+                    this.isPlaying = false;
+                    this.updateUI();
+                }
+            }
+
+            addToPlaylist(track) {
+                this.playlist.push(track);
+                if (this.currentIndex === -1) {
+                    this.currentIndex = 0;
+                    this.loadTrack(track);
+                }
+                this.renderPlaylist();
+            }
+
+            render() {
+                const container = document.getElementById('playersContainer');
+                const div = document.createElement('div');
+                div.className = 'player-card';
+                div.id = `player-${this.id}`;
+                div.innerHTML = `
+                    <div class="player-header">
+                        <span>🎧 Player ${this.id}</span>
+                        <button class="btn btn-danger btn-sm" onclick="removePlayer(${this.id})">✕</button>
+                    </div>
+                    <div class="track-info" id="track-info-${this.id}">No track loaded</div>
+                    <div class="player-controls">
+                        <button onclick="players[${this.id}].prev()" title="Previous">⏮</button>
+                        <button onclick="players[${this.id}].togglePlay()" id="play-btn-${this.id}" title="Play/Pause">▶</button>
+                        <button onclick="players[${this.id}].playNext()" title="Next">⏭</button>
+                    </div>
+                    <div class="pan-control">
+                        <span>L</span>
+                        <input type="range" min="-1" max="1" step="0.1" value="0" oninput="players[${this.id}].setPan(this.value)">
+                        <span>R</span>
+                    </div>
+                    <div class="pan-buttons">
+                        <button class="pan-left" onclick="players[${this.id}].setPan(-1)">Only Left</button>
+                        <button class="pan-center active" onclick="players[${this.id}].setPan(0)">Center</button>
+                        <button class="pan-right" onclick="players[${this.id}].setPan(1)">Only Right</button>
+                    </div>
+                    <div class="device-control">
+                        <label>Output Device:</label>
+                        <select onchange="players[${this.id}].setOutput(this.value)" id="device-select-${this.id}">
+                            <option value="">Default System Audio</option>
+                        </select>
+                    </div>
+                    <div class="player-playlist" id="playlist-${this.id}"></div>
+                    <button class="btn btn-outline btn-sm" onclick="addLibraryToPlayer(${this.id})">+ Add All from Library</button>
+                `;
+                container.appendChild(div);
+                renderAudioDevices();
+            }
+
+            updateUI() {
+                const info = document.getElementById(`track-info-${this.id}`);
+                const btn = document.getElementById(`play-btn-${this.id}`);
+                if (this.currentTrack) {
+                    info.textContent = `${this.currentTrack.name} ${this.isPlaying ? '▶' : '⏸'}`;
+                    info.className = `track-info ${this.isPlaying ? 'active' : ''}`;
+                }
+                btn.textContent = this.isPlaying ? '⏸' : '▶';
+                this.renderPlaylist();
+            }
+
+            renderPlaylist() {
+                const list = document.getElementById(`playlist-${this.id}`);
+                list.innerHTML = '';
+                this.playlist.forEach((track, idx) => {
+                    const item = document.createElement('div');
+                    item.className = `playlist-item ${idx === this.currentIndex ? 'active' : ''}`;
+                    item.innerHTML = `<span>${idx + 1}. ${track.name}</span>`;
+                    item.onclick = () => {
+                        this.currentIndex = idx;
+                        this.loadTrack(track).then(() => this.play());
+                    };
+                    list.appendChild(item);
+                });
+            }
+            
+            prev() {
+                if (this.currentIndex > 0) {
+                    this.currentIndex--;
+                    this.loadTrack(this.playlist[this.currentIndex]).then(() => this.play());
+                }
+            }
+        }
+
+        function addPlayer() {
+            playerCounter++;
+            players[playerCounter] = new MusicPlayer(playerCounter);
+        }
+
+        function removePlayer(id) {
+            if (players[id]) {
+                players[id].audio.pause();
+                delete players[id];
+                document.getElementById(`player-${id}`).remove();
+            }
+        }
+
+        async function renderAudioDevices() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+                for (const id in players) {
+                    const select = document.getElementById(`device-select-${id}`);
+                    if (!select) continue;
+                    const currentVal = select.value;
+                    select.innerHTML = '<option value="">Default System Audio</option>';
+                    audioOutputs.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.textContent = device.label || `Audio Device (${device.deviceId.substr(0,5)}...)`;
+                        select.appendChild(option);
+                    });
+                    select.value = currentVal;
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function requestDevicePermissions() {
+            try {
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                showToast('✅ Permissions granted. Device labels should now appear.');
+                renderAudioDevices();
+            } catch(e) {
+                showToast('⚠️ Permission denied', 'error');
+            }
+        }
+
+        async function connectBluetooth() {
+            if (!navigator.bluetooth) {
+                showToast('⚠️ Web Bluetooth not supported in this browser', 'error');
+                return;
+            }
+            try {
+                showToast('🔍 Searching for Bluetooth devices...');
+                const device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: ['battery_service', 'device_information']
+                });
+                showToast(`✅ Paired with "${device.name}". Select it in the Output Device dropdown.`);
+                setTimeout(renderAudioDevices, 1500);
+            } catch (err) {
+                showToast('⚠️ Bluetooth pairing cancelled or failed', 'error');
+            }
+        }
+
+        // ==================== LIBRARY & INGEST ====================
+        async function processNewAudioFile(file) {
+            const id = 'file_' + Date.now() + '_' + generateId();
+            const trackMeta = { id, name: file.name, size: file.size, type: file.type, isStream: false, timestamp: Date.now() };
+            await saveMetadata(trackMeta);
+            await saveBlob(id, file);
+            renderLibrary();
+            
+            if (isHost && Object.keys(connections).length > 0) {
+                announceTrackToPeers(trackMeta);
+            }
+            showToast(`✅ Added: ${file.name}`);
+        }
+
+        function addStreamUrl() {
+            const url = document.getElementById('streamUrl').value.trim();
+            if (!url) return;
+            const name = prompt('Track Name:', 'Streamed Track') || 'Streamed Track';
+            const track = { id: 'stream_' + Date.now(), name, type: 'audio/mpeg', url, isStream: true, timestamp: Date.now() };
+            saveMetadata(track);
+            renderLibrary();
+            document.getElementById('streamUrl').value = '';
+            showToast('✅ Stream URL added!');
+        }
+
+        async function renderLibrary() {
+            const tracks = await getAllMetadata();
+            const container = document.getElementById('libraryList');
+            document.getElementById('libCount').textContent = tracks.length;
+            container.innerHTML = '';
+            
+            if (tracks.length === 0) {
+                container.innerHTML = '<div class="empty-state">No tracks in library.</div>';
+                return;
+            }
+            
+            tracks.sort((a, b) => b.timestamp - a.timestamp).forEach(track => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `
+                    <div class="file-icon">${track.isStream ? '🔗' : '🎵'}</div>
+                    <div class="file-info">
+                        <div class="file-name" title="${track.name}">${track.name}</div>
+                        <div class="file-meta">${track.isStream ? 'Stream URL' : formatSize(track.size)}</div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="file-btn download" onclick="playTrackInActivePlayer('${track.id}')">▶</button>
+                        <button class="file-btn remove" onclick="deleteTrack('${track.id}')">✕</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function playTrackInActivePlayer(trackId) {
+            const db = await dbPromise;
+            const tx = db.transaction('metadata', 'readonly');
+            const req = tx.objectStore('metadata').get(trackId);
+            req.onsuccess = () => {
+                const track = req.result;
+                if (!track) return;
+                const playerId = Object.keys(players)[0] || 1;
+                if (players[playerId]) {
+                    players[playerId].addToPlaylist(track);
+                    players[playerId].currentIndex = players[playerId].playlist.length - 1;
+                    players[playerId].loadTrack(track).then(() => players[playerId].play());
+                }
+            };
+        }
+
+        function addLibraryToPlayer(playerId) {
+            getAllMetadata().then(tracks => {
+                tracks.forEach(track => players[playerId].addToPlaylist(track));
+                showToast(`✅ Added ${tracks.length} tracks to Player ${playerId}`);
+            });
+        }
+
+        // Drag & Drop and Paste
+        const globalDropZone = document.getElementById('globalDropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        globalDropZone.addEventListener('click', () => globalDropZone.focus());
+        globalDropZone.addEventListener('dragover', (e) => { e.preventDefault(); globalDropZone.classList.add('dragover'); });
+        globalDropZone.addEventListener('dragleave', () => globalDropZone.classList.remove('dragover'));
+        globalDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            globalDropZone.classList.remove('dragover');
+            Array.from(e.dataTransfer.files).forEach(file => {
+                if (file.type.startsWith('audio/')) processNewAudioFile(file);
+            });
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            Array.from(e.target.files).forEach(file => processNewAudioFile(file));
+            fileInput.value = '';
+        });
+
+        // Global paste listener for "copy mp3 from anywhere"
+        document.addEventListener('paste', async (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            const items = e.clipboardData.items;
+            let fileAdded = false;
+            for (let item of items) {
+                if (item.kind === 'file' && item.type.startsWith('audio/')) {
+                    await processNewAudioFile(item.getAsFile());
+                    fileAdded = true;
+                }
+            }
+            if (fileAdded) showToast('✅ Audio pasted from clipboard!');
+        });
+
+        // ==================== P2P SYNC LOGIC ====================
+        function createRoom() {
+            let identifier = document.getElementById('myIdentifier').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g, '') || 'host-' + generateId();
+            document.getElementById('myIdentifier').value = identifier;
+            
+            const btn = document.getElementById('createRoomBtn');
+            btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Creating...';
+
+            peer = new Peer(identifier, { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+
+            peer.on('open', (id) => {
+                myPeerId = id; isHost = true;
+                document.getElementById('setupScreen').classList.remove('active');
+                document.getElementById('roomScreen').classList.add('active');
+                document.getElementById('roomCodeDisplay').value = id;
+                setStatus('connecting', `Room "${id}" created — waiting for devices...`);
+                showToast(`✅ Room created! Identifier: ${id}`);
+                btn.disabled = false; btn.innerHTML = '✨ Create Room';
+                addPlayer(); // Start with one player
+                renderLibrary();
+            });
+
+            peer.on('connection', handleConnection);
+            peer.on('error', (err) => {
+                showToast(`❌ Error: ${err.type}`, 'error');
+                btn.disabled = false; btn.innerHTML = '✨ Create Room';
+            });
+        }
+
+        function joinRoom() {
+            let identifier = document.getElementById('joinIdentifier').value.trim().toLowerCase().replace(/[^a-z0-9\-_]/g, '');
+            if (!identifier) { showToast('⚠️ Enter a valid Room ID', 'error'); return; }
+            
+            const btn = document.getElementById('joinRoomBtn');
+            btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Joining...';
+
+            const uniqueId = `${identifier}-client-${generateId()}`;
+            peer = new Peer(uniqueId, { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+
+            peer.on('open', (id) => {
+                myPeerId = id; isHost = false;
+                document.getElementById('setupScreen').classList.remove('active');
+                document.getElementById('roomScreen').classList.add('active');
+                document.getElementById('roomCodeDisplay').value = identifier + ' (Client)';
+                setStatus('connecting', 'Connecting to host...');
+                
+                const conn = peer.connect(identifier, { reliable: true, metadata: { name: 'Phone/Client' } });
+                handleConnection(conn);
+                
+                btn.disabled = false; btn.innerHTML = '🔗 Join';
+                addPlayer();
+                renderLibrary();
+            });
+
+            peer.on('error', (err) => {
+                showToast(`❌ Room not found`, 'error');
+                btn.disabled = false; btn.innerHTML = '🔗 Join';
+            });
+        }
+
+        function handleConnection(conn) {
+            const peerId = conn.peer;
+            conn.on('open', () => {
+                connections[peerId] = conn;
+                setStatus('connected', `${Object.keys(connections).length} device(s) connected`);
+                showToast('🎉 Device connected!');
+                if (isHost) announceExistingTracks(conn);
+            });
+
+            conn.on('data', async (data) => {
+                if (data.type === 'track-announce') {
+                    const db = await dbPromise;
+                    const tx = db.transaction('metadata', 'readonly');
+                    const req = tx.objectStore('metadata').get(data.track.id);
+                    req.onsuccess = () => {
+                        if (!req.result) {
+                            conn.send({ type: 'track-request', trackId: data.track.id, trackMeta: data.track });
+                            showToast(`📥 Auto-downloading: ${data.track.name}`);
+                        }
+                    };
+                } else if (data.type === 'track-request') {
+                    sendTrackChunks(data.trackId, conn);
+                } else if (data.type === 'track-chunk') {
+                    if (!receivingTracks[data.trackId]) {
+                        receivingTracks[data.trackId] = { chunks: {}, received: 0, total: data.totalSize, meta: data.trackMeta };
+                    }
+                    receivingTracks[data.trackId].chunks[data.offset] = data.buffer;
+                    receivingTracks[data.trackId].received += data.buffer.byteLength;
+                } else if (data.type === 'track-complete') {
+                    completeTrackReceive(data.trackId);
+                }
+            });
+
+            conn.on('close', () => {
+                delete connections[peerId];
+                setStatus('connected', `${Object.keys(connections).length} device(s) connected`);
+            });
+        }
+
+        function announceExistingTracks(conn) {
+            getAllMetadata().then(tracks => {
+                tracks.forEach(track => conn.send({ type: 'track-announce', track }));
+            });
+        }
+
+        function announceTrackToPeers(trackMeta) {
+            const msg = { type: 'track-announce', track: trackMeta };
+            for (const peerId in connections) connections[peerId].send(msg);
+        }
+
+        async function sendTrackChunks(trackId, conn) {
+            const blob = await getBlob(trackId);
+            if (!blob) return;
+            const chunkSize = 16384;
+            let offset = 0;
+            
+            const sendNext = () => {
+                if (offset >= blob.size) {
+                    conn.send({ type: 'track-complete', trackId });
+                    return;
+                }
+                const chunk = blob.slice(offset, offset + chunkSize);
+                chunk.arrayBuffer().then(buffer => {
+                    conn.send({ type: 'track-chunk', trackId, offset, buffer, totalSize: blob.size });
+                    offset += chunkSize;
+                    sendNext();
+                });
+            };
+            sendNext();
+        }
+
+        async function completeTrackReceive(trackId) {
+            const rt = receivingTracks[trackId];
+            if (!rt) return;
+            
+            const sortedKeys = Object.keys(rt.chunks).sort((a, b) => parseInt(a) - parseInt(b));
+            const buffers = sortedKeys.map(key => rt.chunks[key]);
+            const blob = new Blob(buffers, { type: rt.meta.type || 'audio/mpeg' });
+            
+            await saveBlob(trackId, blob);
+            await saveMetadata(rt.meta);
+            showToast(`✅ Auto-downloaded: ${rt.meta.name}`);
+            renderLibrary();
+            delete receivingTracks[trackId];
+        }
+
+        // ==================== UI HELPERS ====================
+        function copyRoomCode() {
+            const code = document.getElementById('roomCodeDisplay').value;
+            navigator.clipboard.writeText(code).then(() => showToast('📋 Copied!'));
+        }
+
+        function showRoomQR() {
+            const code = document.getElementById('roomCodeDisplay').value;
+            if (!code) return;
+            const url = `${window.location.href.split('#')[0]}#join=${encodeURIComponent(code)}`;
+            document.getElementById('qrContainer').innerHTML = '';
+            new QRCode(document.getElementById('qrContainer'), { text: url, width: 180, height: 180 });
+            document.getElementById('qrModal').classList.add('show');
+        }
+
+        function closeQR() {
+            document.getElementById('qrModal').classList.remove('show');
+        }
+
+        function leaveRoom() {
+            Object.values(connections).forEach(conn => conn.close());
+            connections = {};
+            if (peer) { peer.destroy(); peer = null; }
+            Object.keys(players).forEach(id => removePlayer(id));
+            document.getElementById('roomScreen').classList.remove('active');
+            document.getElementById('setupScreen').classList.add('active');
+            setStatus('disconnected', 'Disconnected');
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            const hash = window.location.hash;
+            if (hash.startsWith('#join=')) {
+                document.getElementById('joinIdentifier').value = decodeURIComponent(hash.substring(6));
+                history.replaceState(null, null, window.location.pathname);
+            }
+        });
+    </script>
+</body>
+</html>
