@@ -154,12 +154,13 @@
         .file-info { flex: 1; min-width: 0; }
         .file-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .file-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-        .file-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+        .file-actions { display: flex; gap: 6px; flex-shrink: 0; }
         .file-btn {
             padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
         }
         .file-btn.download { background: var(--highlight); color: white; }
         .file-btn.remove { background: rgba(255, 107, 107, 0.15); color: #ff8a8a; }
+        .file-btn.cancel { background: rgba(255, 183, 77, 0.15); color: var(--warning); }
 
         /* PERMISSION WIZARD & AUTH */
         .permission-wizard, .auth-screen {
@@ -187,10 +188,9 @@
 
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); z-index: 2000;
-            display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); padding: 20px;
-            opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
+            display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px); padding: 20px;
         }
-        .modal-overlay.show { opacity: 1; visibility: visible; }
+        .modal-overlay.show { display: flex; animation: fadeIn 0.3s ease; }
         .modal { background: var(--bg-card); border-radius: 20px; padding: 24px; text-align: center; max-width: 360px; width: 100%; border: 1px solid var(--border); }
         .modal .qr-container { background: white; padding: 16px; border-radius: 16px; display: inline-block; margin: 16px 0; }
         .modal-close { padding: 10px 24px; border: none; border-radius: 10px; background: var(--highlight); color: white; font-weight: 600; cursor: pointer; margin-top: 8px; }
@@ -214,26 +214,6 @@
         .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
         footer { text-align: center; padding: 20px 0; margin-top: auto; color: var(--text-secondary); font-size: 0.75rem; }
-
-        /* PHONE SCAN & SYNC SPECIFIC STYLES */
-        @keyframes syncPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .syncing-badge {
-            animation: syncPulse 1.5s infinite;
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 700;
-            background: rgba(255, 183, 77, 0.2);
-            color: var(--warning);
-        }
-        #phoneScanResults {
-            animation: fadeIn 0.4s ease;
-            border: 2px solid var(--highlight) !important;
-        }
     </style>
 </head>
 <body>
@@ -396,15 +376,10 @@
                             <div class="drop-subtext">Auto-syncs & downloads to connected devices</div>
                         </div>
                         
-                        <button class="btn btn-outline btn-sm" onclick="document.getElementById('localScanInput').click()" style="margin-top: 12px;">
+                        <button class="btn btn-outline btn-sm" onclick="triggerLocalScan()" style="margin-top: 12px;">
                             📂 Scan Local Device for Music
                         </button>
                         <input type="file" id="localScanInput" webkitdirectory directory multiple accept="audio/*,video/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.wma,.opus,.webm,.3gp,.amr,.mid,.midi" style="display:none">
-
-                        <button class="btn btn-success btn-sm" id="phoneScanBtn" onclick="startPhoneScan()" style="margin-top: 12px; display: none;">
-                            📱 Scan Phone for Music
-                        </button>
-                        <input type="file" id="phoneScanInput" multiple accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.wma,.opus" style="display:none">
 
                         <div class="input-group" style="margin-top: 14px; margin-bottom: 0;">
                             <label>Stream from URL</label>
@@ -415,16 +390,11 @@
                         </div>
                     </div>
 
-                    <div id="phoneScanResults" class="card" style="display: none; margin-top: 12px;">
-                        <div class="card-title"><span>🔍</span> Discovered on Phone</div>
-                        <div id="phoneScanList" class="file-list" style="max-height: 250px;"></div>
-                        <button class="btn btn-success btn-large" onclick="addScannedToLibrary()" style="margin-top: 16px;">
-                            ➕ Add All to Library
-                        </button>
-                    </div>
-
                     <div class="card">
-                        <div class="card-title"><span>📚</span> Library <span class="badge" id="libCount">0</span></div>
+                        <div class="card-title" style="justify-content: space-between;">
+                            <span><span>📚</span> Library <span class="badge" id="libCount">0</span></span>
+                            <button class="btn btn-sm btn-danger" onclick="clearAllCache()" style="padding: 4px 10px; font-size: 11px;">🗑️ Clear Cache</button>
+                        </div>
                         <div class="file-list" id="libraryList">
                             <div class="empty-state">No tracks yet. Drop, paste, or scan local files!</div>
                         </div>
@@ -449,6 +419,19 @@
         </div>
     </div>
 
+    <!-- Local Scan Modal -->
+    <div class="modal-overlay" id="localScanModal">
+        <div class="modal" style="max-width: 500px; max-height: 80vh; display: flex; flex-direction: column;">
+            <h3 style="margin-bottom: 12px; font-size: 1.2rem;">📂 Discovered Local Music</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Review the files found on your device. Click "Add All to Library" to save them.</p>
+            <div id="localScanList" style="flex: 1; overflow-y: auto; margin-bottom: 16px; text-align: left; background: var(--bg-input); border-radius: 8px; padding: 8px;"></div>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-primary" onclick="confirmLocalScanAdd()">✅ Add All to Library</button>
+                <button class="btn btn-outline" onclick="closeLocalScanModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
@@ -463,7 +446,9 @@
         const players = {};
         let playerCounter = 0;
         const receivingTracks = {};
-        let pendingPhoneFiles = [];
+        let pendingLocalFiles = [];
+        const downloadQueue = [];
+        let isProcessingQueue = false;
 
         // ==================== AUTH SYSTEM ====================
         function handleAuth(mode) {
@@ -546,26 +531,16 @@
             request.onerror = (e) => reject(e);
         });
 
-        function saveMetadata(meta) {
-            return dbPromise.then(db => {
-                return new Promise((resolve, reject) => {
-                    const tx = db.transaction('metadata', 'readwrite');
-                    tx.objectStore('metadata').put(meta);
-                    tx.oncomplete = () => resolve();
-                    tx.onerror = (e) => reject(e);
-                });
-            });
+        async function saveMetadata(meta) {
+            const db = await dbPromise;
+            const tx = db.transaction('metadata', 'readwrite');
+            tx.objectStore('metadata').put(meta);
         }
 
-        function saveBlob(id, blob) {
-            return dbPromise.then(db => {
-                return new Promise((resolve, reject) => {
-                    const tx = db.transaction('blobs', 'readwrite');
-                    tx.objectStore('blobs').put({ id, blob });
-                    tx.oncomplete = () => resolve();
-                    tx.onerror = (e) => reject(e);
-                });
-            });
+        async function saveBlob(id, blob) {
+            const db = await dbPromise;
+            const tx = db.transaction('blobs', 'readwrite');
+            tx.objectStore('blobs').put({ id, blob });
         }
 
         async function getBlob(id) {
@@ -606,6 +581,17 @@
             
             renderLibrary();
             showToast('🗑️ Track removed from library');
+        }
+
+        async function clearAllCache() {
+            if (!confirm('Clear all cached audio files? This will remove all downloaded music but keep the library list.')) return;
+            
+            const db = await dbPromise;
+            const tx = db.transaction('blobs', 'readwrite');
+            tx.objectStore('blobs').clear();
+            
+            showToast('✅ Cache cleared successfully', 'success');
+            renderLibrary();
         }
 
         // ==================== STATE & UTILS ====================
@@ -759,7 +745,7 @@
                         handleConnection(newConn);
                     } catch(e) {}
                 }
-            }, 1500); 
+            }, 1500);
         }
 
         // ==================== MUSIC PLAYER CLASS ====================
@@ -774,7 +760,7 @@
                 this.isPlaying = false;
                 this.playAttemptCount = 0;
                 this.currentDeviceId = '';
-                this.repeatMode = 0; 
+                this.repeatMode = 0;
                 
                 this.audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
                 try {
@@ -1184,6 +1170,7 @@
             if (isHost && Object.keys(connections).length > 0) {
                 announceTrackToPeers(trackMeta);
             }
+            showToast(`✅ Added: ${file.name}`, 'success');
         }
 
         function addStreamUrl() {
@@ -1225,6 +1212,8 @@
             
             tracks.sort((a, b) => b.timestamp - a.timestamp).forEach((track, index) => {
                 const hasBlob = hasBlobs[index];
+                const isReceiving = !!receivingTracks[track.id];
+                
                 const div = document.createElement('div');
                 div.className = 'file-item';
                 div.draggable = true;
@@ -1233,32 +1222,27 @@
                     e.dataTransfer.effectAllowed = 'copy';
                 };
                 
+                let statusText = hasBlob ? formatSize(track.size) : (isReceiving ? '⏳ Downloading from Laptop...' : '☁️ Available on Laptop');
                 let actionButtons = '';
+                
                 if (hasBlob) {
                     actionButtons = `
                         <button class="file-btn download" onclick="playTrackInActivePlayer('${track.id}')">▶ Play</button>
                         <button class="file-btn remove" onclick="deleteTrack('${track.id}')">✕</button>
                     `;
+                } else if (!isHost) {
+                    actionButtons = isReceiving ? 
+                        `<span style="font-size: 11px; color: var(--warning);">Downloading...</span>` :
+                        `<span style="font-size: 11px; color: var(--text-secondary);">Auto-syncing...</span>`;
                 } else {
-                    if (!isHost) {
-                        // Phone side: Auto-syncing, NO manual download button
-                        actionButtons = `
-                            <span class="syncing-badge">⏳ Syncing...</span>
-                            <button class="file-btn remove" onclick="deleteTrack('${track.id}')">✕</button>
-                        `;
-                    } else {
-                        actionButtons = `
-                            <button class="file-btn download" style="background: var(--warning); color: #000;" onclick="requestTrackDownload('${track.id}')">⬇ Download</button>
-                            <button class="file-btn remove" onclick="deleteTrack('${track.id}')">✕</button>
-                        `;
-                    }
+                    actionButtons = `<button class="file-btn remove" onclick="deleteTrack('${track.id}')">✕</button>`;
                 }
 
                 div.innerHTML = `
-                    <div class="file-icon">${hasBlob ? '🎵' : '☁️'}</div>
+                    <div class="file-icon">${hasBlob ? '🎵' : (isReceiving ? '⏳' : '☁️')}</div>
                     <div class="file-info">
                         <div class="file-name" title="${track.name}">${track.name}</div>
-                        <div class="file-meta">${hasBlob ? formatSize(track.size) : (isHost ? 'Missing File' : 'Available on Laptop')}</div>
+                        <div class="file-meta">${statusText}</div>
                     </div>
                     <div class="file-actions">
                         ${actionButtons}
@@ -1266,18 +1250,6 @@
                 `;
                 container.appendChild(div);
             });
-        }
-
-        function requestTrackDownload(trackId) {
-            if (!isHost) {
-                const hostConn = Object.values(connections)[0];
-                if (hostConn) {
-                    showToast('⬇ Requesting download from laptop...', 'success');
-                    hostConn.send({ type: 'track-request', trackId });
-                } else {
-                    showToast('⚠️ Not connected to laptop', 'error');
-                }
-            }
         }
 
         async function playTrackInActivePlayer(trackId) {
@@ -1304,59 +1276,71 @@
             });
         }
 
-        // PHONE SCAN IMPLEMENTATION
-        function startPhoneScan() {
-            document.getElementById('phoneScanInput').click();
+        // ==================== LOCAL SCAN MODAL LOGIC ====================
+        function triggerLocalScan() {
+            document.getElementById('localScanInput').click();
         }
 
-        document.getElementById('phoneScanInput').addEventListener('change', (e) => {
-            const files = Array.from(e.target.files).filter(f => f.type.startsWith('audio/') || /\.(mp3|wav|ogg|flac|m4a|aac)$/i.test(f.name));
+        document.getElementById('localScanInput').addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files).filter(f => 
+                f.type.startsWith('audio/') || f.type.startsWith('video/') || /\.(mp3|wav|ogg|flac|m4a|aac|wma|opus|webm|3gp|amr|mid|midi)$/i.test(f.name)
+            );
+            
             if (files.length === 0) {
-                showToast('⚠️ No music files found on device', 'warning');
+                showToast('⚠️ No audio files found in selected location', 'warning');
                 return;
             }
-            pendingPhoneFiles = files;
-            showPhoneScanResults(files);
-        });
-
-        function showPhoneScanResults(files) {
-            const list = document.getElementById('phoneScanList');
-            const container = document.getElementById('phoneScanResults');
-            list.innerHTML = '';
             
-            files.forEach((file) => {
+            pendingLocalFiles = files;
+            const listContainer = document.getElementById('localScanList');
+            listContainer.innerHTML = '';
+            
+            const displayFiles = files.slice(0, 100);
+            displayFiles.forEach((file) => {
                 const div = document.createElement('div');
-                div.className = 'file-item';
-                div.innerHTML = `
-                    <div class="file-icon">🎵</div>
-                    <div class="file-info">
-                        <div class="file-name">${file.name}</div>
-                        <div class="file-meta">${formatSize(file.size)} • Local Device</div>
-                    </div>
-                `;
-                list.appendChild(div);
+                div.style.cssText = 'padding: 8px; border-bottom: 1px solid var(--border); font-size: 13px; display: flex; justify-content: space-between; align-items: center;';
+                div.innerHTML = `<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%;">${file.name}</span><span style="color: var(--text-secondary); flex-shrink: 0;">${formatSize(file.size)}</span>`;
+                listContainer.appendChild(div);
             });
             
-            container.style.display = 'block';
-            showToast(`🔍 Discovered ${files.length} tracks on your phone`, 'success');
+            if (files.length > 100) {
+                const moreDiv = document.createElement('div');
+                moreDiv.style.cssText = 'padding: 8px; font-size: 12px; color: var(--text-secondary); text-align: center;';
+                moreDiv.textContent = `... and ${files.length - 100} more files`;
+                listContainer.appendChild(moreDiv);
+            }
+            
+            document.getElementById('localScanModal').classList.add('show');
+            e.target.value = '';
+        });
+
+        function confirmLocalScanAdd() {
+            closeLocalScanModal();
+            const total = pendingLocalFiles.length;
+            showToast(`🔍 Processing ${total} local files...`, 'success');
+            
+            let processed = 0;
+            const processNext = async () => {
+                if (processed < total) {
+                    await processNewAudioFile(pendingLocalFiles[processed]);
+                    processed++;
+                    setTimeout(processNext, 10);
+                } else {
+                    showToast(`✅ Successfully added ${processed} tracks to library!`, 'success');
+                    pendingLocalFiles = [];
+                }
+            };
+            processNext();
         }
 
-        async function addScannedToLibrary() {
-            if (pendingPhoneFiles.length === 0) return;
-            showToast(`⏳ Adding ${pendingPhoneFiles.length} tracks to library...`);
-            for (const file of pendingPhoneFiles) {
-                await processNewAudioFile(file);
-            }
-            pendingPhoneFiles = [];
-            document.getElementById('phoneScanResults').style.display = 'none';
-            document.getElementById('phoneScanInput').value = '';
-            showToast(`✅ Added all scanned music to library!`, 'success');
+        function closeLocalScanModal() {
+            document.getElementById('localScanModal').classList.remove('show');
+            pendingLocalFiles = [];
         }
 
         // Drag & Drop and Paste
         const globalDropZone = document.getElementById('globalDropZone');
         const fileInput = document.getElementById('fileInput');
-        const localScanInput = document.getElementById('localScanInput');
 
         globalDropZone.addEventListener('click', () => globalDropZone.focus());
         globalDropZone.addEventListener('dragover', (e) => { e.preventDefault(); globalDropZone.classList.add('dragover'); });
@@ -1365,22 +1349,13 @@
             e.preventDefault();
             globalDropZone.classList.remove('dragover');
             Array.from(e.dataTransfer.files).forEach(file => {
-                processNewAudioFile(file); 
+                processNewAudioFile(file);
             });
         });
 
         fileInput.addEventListener('change', (e) => {
             Array.from(e.target.files).forEach(file => processNewAudioFile(file));
             fileInput.value = '';
-        });
-
-        localScanInput.addEventListener('change', async (e) => {
-            const files = Array.from(e.target.files);
-            if (files.length === 0) { showToast('⚠️ No files found in selected folder', 'warning'); return; }
-            showToast(`🔍 Processing ${files.length} local files...`);
-            for (const file of files) await processNewAudioFile(file);
-            showToast(`✅ Added ${files.length} tracks to library!`, 'success');
-            localScanInput.value = '';
         });
 
         document.addEventListener('paste', async (e) => {
@@ -1461,7 +1436,7 @@
             });
 
             peer.on('error', (err) => {
-                showToast(`❌ Room not found or host offline. Ensure laptop is hosting.`, 'error');
+                showToast(`❌ Room not found or host offline`, 'error');
                 btn.disabled = false; btn.innerHTML = '🔗 Join';
             });
         }
@@ -1473,22 +1448,16 @@
                     dropZone.innerHTML = `
                         <div class="drop-icon">📱</div>
                         <div class="drop-text">Phone Sync Mode Active</div>
-                        <div class="drop-subtext">Auto-downloading library from laptop...</div>
+                        <div class="drop-subtext">Music added on laptop will auto-download here. You can also add local phone music below.</div>
                     `;
                     dropZone.style.pointerEvents = 'none';
-                    dropZone.style.opacity = '0.6';
+                    dropZone.style.opacity = '0.7';
                 }
-                
-                const phoneScanBtn = document.getElementById('phoneScanBtn');
-                if (phoneScanBtn) phoneScanBtn.style.display = 'inline-flex';
                 
                 const streamGroup = document.querySelector('.input-group');
-                if (streamGroup && streamGroup.querySelector('label') && streamGroup.querySelector('label').textContent.includes('Stream')) {
+                if (streamGroup && streamGroup.querySelector('label').textContent.includes('Stream')) {
                     streamGroup.style.display = 'none';
                 }
-            } else {
-                const phoneScanBtn = document.getElementById('phoneScanBtn');
-                if (phoneScanBtn) phoneScanBtn.style.display = 'none';
             }
         }
 
@@ -1496,9 +1465,13 @@
             const peerId = conn.peer;
             conn.on('open', () => {
                 connections[peerId] = conn;
-                closeQR(); // AUTO-HIDE QR UI AFTER SUCCESSFUL CONNECTION
-                setStatus('connected', `Connected to Laptop`);
-                showToast('🎉 Connected to Laptop! Syncing library...', 'success');
+                
+                if (isHost) {
+                    closeQR();
+                }
+                
+                setStatus('connected', isHost ? `Connected to Phone` : `Connected to Laptop`);
+                showToast(isHost ? '🎉 Phone connected! Syncing library...' : '🎉 Connected to Laptop! Syncing library...', 'success');
                 
                 if (!isHost) {
                     conn.send({ type: 'library-sync-request' });
@@ -1513,20 +1486,25 @@
                     const db = await dbPromise;
                     const tx = db.transaction('metadata', 'readonly');
                     const req = tx.objectStore('metadata').get(data.track.id);
-                    req.onsuccess = () => {
+                    req.onsuccess = async () => {
                         if (!req.result) {
-                            saveMetadata(data.track);
+                            await saveMetadata(data.track);
                             renderLibrary();
-                            conn.send({ type: 'track-request', trackId: data.track.id, trackMeta: data.track });
-                            showToast(`📥 Auto-downloading from laptop: ${data.track.name}`, 'success');
+                            
+                            // IMMEDIATE AUTO-DOWNLOAD - PRIORITY
+                            const hostConn = Object.values(connections)[0];
+                            if (hostConn) {
+                                hostConn.send({ type: 'track-request', trackId: data.track.id, trackMeta: data.track });
+                                showToast(`⬇️ Auto-downloading: ${data.track.name}`, 'success');
+                            }
                         } else {
-                            const blobTx = db.transaction('blobs', 'readonly');
-                            const blobReq = blobTx.objectStore('blobs').get(data.track.id);
-                            blobReq.onsuccess = () => {
-                                if (!blobReq.result) {
-                                    conn.send({ type: 'track-request', trackId: data.track.id, trackMeta: data.track });
+                            const blob = await getBlob(data.track.id);
+                            if (!blob) {
+                                const hostConn = Object.values(connections)[0];
+                                if (hostConn) {
+                                    hostConn.send({ type: 'track-request', trackId: data.track.id, trackMeta: data.track });
                                 }
-                            };
+                            }
                         }
                     };
                 } else if (data.type === 'library-sync-request') {
@@ -1598,33 +1576,20 @@
 
         async function sendTrackChunks(trackId, conn) {
             const blob = await getBlob(trackId);
-            if (!blob) {
-                showToast('⚠️ Track file missing on laptop', 'error');
-                return;
-            }
-            const chunkSize = 16384; 
+            if (!blob) return;
+            const chunkSize = 16384;
             let offset = 0;
-            
-            const sendNext = async () => {
+            const sendNext = () => {
                 if (offset >= blob.size) {
                     conn.send({ type: 'track-complete', trackId });
                     return;
                 }
-                
-                if (conn.dataChannel && conn.dataChannel.bufferedAmount > 1048576) { 
-                    await new Promise(resolve => setTimeout(resolve, 50));
-                    return sendNext();
-                }
-
                 const chunk = blob.slice(offset, offset + chunkSize);
-                try {
-                    const buffer = await chunk.arrayBuffer();
+                chunk.arrayBuffer().then(buffer => {
                     conn.send({ type: 'track-chunk', trackId, offset, buffer, totalSize: blob.size });
                     offset += chunkSize;
                     sendNext();
-                } catch (e) {
-                    console.error('Chunk send error:', e);
-                }
+                });
             };
             sendNext();
         }
@@ -1638,7 +1603,7 @@
             
             await saveBlob(trackId, blob);
             await saveMetadata(rt.meta);
-            showToast(`✅ Downloaded & added to library: ${rt.meta.name}`, 'success');
+            showToast(`✅ Downloaded: ${rt.meta.name}`, 'success');
             renderLibrary();
             
             const firstPlayerId = Object.keys(players)[0];
@@ -1661,24 +1626,9 @@
         function showRoomQR() {
             const code = document.getElementById('roomCodeDisplay').value;
             if (!code) return;
-            
-            const baseUrl = window.location.href.split('#')[0].split('?')[0];
-            const url = `${baseUrl}#join=${encodeURIComponent(code)}`;
-            
-            const container = document.getElementById('qrContainer');
-            container.innerHTML = '';
-            
-            setTimeout(() => {
-                new QRCode(container, { 
-                    text: url, 
-                    width: 200, 
-                    height: 200,
-                    colorDark : "#1a5f1a",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.H
-                });
-            }, 100);
-            
+            const url = `${window.location.href.split('#')[0]}#join=${encodeURIComponent(code)}`;
+            document.getElementById('qrContainer').innerHTML = '';
+            new QRCode(document.getElementById('qrContainer'), { text: url, width: 180, height: 180 });
             document.getElementById('qrModal').classList.add('show');
         }
 
@@ -1708,35 +1658,29 @@
         });
 
         document.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('pd_user');
             const hash = window.location.hash;
+            
             if (hash.startsWith('#join=')) {
                 const roomId = decodeURIComponent(hash.substring(6));
+                history.replaceState(null, null, window.location.pathname);
                 
-                // 1. Instantly bypass Auth and Setup screens
-                document.getElementById('authScreen').classList.add('hidden');
-                document.getElementById('setupScreen').classList.remove('active');
-                document.getElementById('roomScreen').classList.add('active');
-                
-                // 2. Initialize Audio Context silently
-                if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    audioContext.resume().catch(() => {});
+                if (!savedUser) {
+                    localStorage.setItem('pd_user', JSON.stringify({ username: 'Guest', mode: 'preview' }));
+                    document.getElementById('authScreen').classList.add('hidden');
+                    document.getElementById('setupScreen').classList.add('active');
+                    updateAuthUI();
+                } else {
+                    document.getElementById('authScreen').classList.add('hidden');
+                    document.getElementById('setupScreen').classList.add('active');
+                    updateAuthUI();
                 }
-                appInitialized = true;
-                if (Object.keys(players).length === 0) addPlayer();
-                requestWakeLock();
                 
-                setStatus('connecting', 'Auto-connecting to laptop...');
-                showToast('🎯 QR Scanned! Auto-joining room...', 'success');
-                
-                // 3. Auto-join
+                document.getElementById('joinIdentifier').value = roomId;
+                showToast('🎯 Auto-joining room from QR scan...', 'success');
                 setTimeout(() => joinRoom(roomId), 500);
-                
-            } else {
-                const savedUser = localStorage.getItem('pd_user');
-                if (savedUser) {
-                    enterApp();
-                }
+            } else if (savedUser) {
+                enterApp();
             }
         });
 
