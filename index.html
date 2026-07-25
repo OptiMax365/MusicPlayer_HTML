@@ -9,11 +9,11 @@
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --bg-primary: #0a0f0a; --bg-secondary: #0f1a0f; --bg-card: #1a2e1a;
-            --bg-input: #142a14; --accent: #1a5f1a; --accent-light: #2d862d;
-            --highlight: #00c853; --text-primary: #ffffff; --text-secondary: #a8d8a8;
-            --success: #00e676; --warning: #ffb74d; --border: #2a4a2a;
-            --glow: rgba(0, 200, 83, 0.35); --radius: 16px;
+            --bg-primary: #050a05; --bg-secondary: #0a150a; --bg-card: #122212;
+            --bg-input: #0d1a0d; --accent: #1a5f1a; --accent-light: #2d862d;
+            --highlight: #00e676; --text-primary: #ffffff; --text-secondary: #a8d8a8;
+            --success: #00e676; --warning: #ffb74d; --danger: #ff6b6b; --border: #2a4a2a;
+            --glow: rgba(0, 230, 118, 0.4); --radius: 16px;
         }
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -22,19 +22,19 @@
         }
         body::before {
             content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
-            background: radial-gradient(circle at 30% 40%, rgba(0, 200, 83, 0.06) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 60%, rgba(0, 230, 118, 0.04) 0%, transparent 50%);
-            animation: bgFloat 20s ease-in-out infinite; z-index: -1; pointer-events: none;
+            background: radial-gradient(circle at 30% 40%, rgba(0, 230, 118, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 60%, rgba(0, 200, 83, 0.05) 0%, transparent 50%);
+            animation: bgFloat 25s ease-in-out infinite; z-index: -1; pointer-events: none;
         }
         @keyframes bgFloat { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-2%, -2%) rotate(1deg); } }
         
         .container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 16px; min-height: 100vh; display: flex; flex-direction: column; }
         header { text-align: center; padding: 20px 0; }
-        .logo { font-size: 2.5rem; margin-bottom: 5px; animation: pulse 2s infinite; display: inline-block; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .logo { font-size: 2.8rem; margin-bottom: 5px; animation: pulse 3s infinite ease-in-out; display: inline-block; filter: drop-shadow(0 0 10px var(--glow)); }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         header h1 { 
-            font-size: 1.8rem; font-weight: 800; 
-            background: linear-gradient(135deg, var(--highlight), var(--accent-light), #66bb6a); 
+            font-size: 2rem; font-weight: 800; letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--highlight), #69f0ae, #b9f6ca); 
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; 
         }
         header p { color: var(--text-secondary); margin-top: 6px; font-size: 0.9rem; }
@@ -42,18 +42,28 @@
         .status-bar {
             display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px;
             margin-bottom: 16px; font-size: 13px; font-weight: 600; border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
         }
         .status-bar.disconnected { background: rgba(255, 107, 107, 0.1); border-color: rgba(255, 107, 107, 0.3); color: #ff8a8a; }
-        .status-bar.connecting { background: rgba(0, 200, 83, 0.1); border-color: rgba(0, 200, 83, 0.3); color: var(--highlight); }
-        .status-bar.connected { background: rgba(0, 230, 118, 0.1); border-color: rgba(0, 230, 118, 0.3); color: var(--success); }
-        .status-bar.playing { background: rgba(0, 200, 83, 0.2); border-color: var(--highlight); color: var(--success); box-shadow: 0 0 20px var(--glow); }
-        .status-bar.offline { background: rgba(255, 183, 77, 0.1); border-color: rgba(255, 183, 77, 0.3); color: var(--warning); }
+        .status-bar.connecting { background: rgba(0, 230, 118, 0.1); border-color: rgba(0, 230, 118, 0.3); color: var(--highlight); }
+        .status-bar.connected { background: rgba(0, 230, 118, 0.15); border-color: rgba(0, 230, 118, 0.4); color: var(--success); }
+        .status-bar.playing { background: rgba(0, 230, 118, 0.2); border-color: var(--highlight); color: var(--success); box-shadow: 0 0 25px var(--glow); }
+        .status-bar.offline-warning { 
+            background: rgba(255, 183, 77, 0.15); border-color: var(--warning); color: var(--warning); 
+            justify-content: space-between; animation: pulseWarning 2s infinite;
+        }
+        @keyframes pulseWarning { 0%, 100% { box-shadow: 0 0 5px rgba(255, 183, 77, 0.2); } 50% { box-shadow: 0 0 15px rgba(255, 183, 77, 0.5); } }
+        
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
         .status-bar.connecting .status-dot { animation: pulse 1s infinite; }
         .status-bar.playing .status-dot { animation: pulse 1.5s infinite; box-shadow: 0 0 10px var(--highlight); }
 
-        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
-        .main-grid { display: grid; grid-template-columns: 280px 1fr 300px; gap: 16px; }
+        .card { 
+            background: rgba(18, 34, 18, 0.8); border: 1px solid var(--border); border-radius: var(--radius); 
+            padding: 16px; margin-bottom: 16px; backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .main-grid { display: grid; grid-template-columns: 280px 1fr 320px; gap: 16px; }
         @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
         
         .card-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; color: var(--highlight); }
@@ -62,13 +72,13 @@
             padding: 12px 16px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
             transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
         }
-        .btn:active { transform: scale(0.97); }
-        .btn-primary { background: linear-gradient(135deg, var(--highlight), var(--accent-light)); color: white; }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary { background: linear-gradient(135deg, var(--highlight), var(--accent-light)); color: #000; }
         .btn-primary:hover:not(:disabled) { box-shadow: 0 4px 20px var(--glow); }
-        .btn-success { background: linear-gradient(135deg, var(--success), #00b368); color: #000; }
+        .btn-success { background: linear-gradient(135deg, var(--success), #00c853); color: #000; }
         .btn-danger { background: linear-gradient(135deg, #ff6b6b, #e05555); color: white; }
-        .btn-outline { background: transparent; border: 2px solid var(--highlight); color: var(--highlight); }
-        .btn-outline:hover:not(:disabled) { background: rgba(0, 200, 83, 0.1); }
+        .btn-outline { background: transparent; border: 1px solid var(--highlight); color: var(--highlight); }
+        .btn-outline:hover:not(:disabled) { background: rgba(0, 230, 118, 0.1); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-sm { padding: 8px 12px; font-size: 12px; width: auto; }
         .btn-large { padding: 16px 32px; font-size: 18px; }
@@ -76,10 +86,10 @@
         .input-group { margin-bottom: 14px; }
         .input-group label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; }
         .input-field {
-            width: 100%; padding: 12px; background: var(--bg-input); border: 2px solid var(--border);
-            border-radius: 10px; color: var(--text-primary); font-size: 14px;
+            width: 100%; padding: 12px; background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: 10px; color: var(--text-primary); font-size: 14px; transition: all 0.2s;
         }
-        .input-field:focus { outline: none; border-color: var(--highlight); }
+        .input-field:focus { outline: none; border-color: var(--highlight); box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.2); }
         .input-field.identifier { text-align: center; font-family: monospace; font-size: 16px; letter-spacing: 2px; }
 
         .drop-zone {
@@ -87,7 +97,7 @@
             cursor: pointer; transition: all 0.3s; position: relative; background: var(--bg-input);
         }
         .drop-zone:hover, .drop-zone.dragover, .drop-zone:focus {
-            border-color: var(--highlight); background: rgba(0, 200, 83, 0.05); outline: none; box-shadow: 0 0 15px var(--glow);
+            border-color: var(--highlight); background: rgba(0, 230, 118, 0.05); outline: none; box-shadow: 0 0 20px var(--glow);
         }
         .drop-zone .drop-icon { font-size: 36px; margin-bottom: 8px; }
         .drop-zone .drop-text { font-size: 14px; color: var(--text-primary); margin-bottom: 4px; }
@@ -95,85 +105,87 @@
         .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
         .highlight { color: var(--highlight); font-weight: 700; }
 
+        /* Smaller by width, centered, sleek */
         .player-card { 
             background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); 
-            padding: 12px; margin-bottom: 12px; transition: all 0.3s;
-            max-width: 320px; margin-left: auto; margin-right: auto;
+            padding: 16px; margin-bottom: 16px; transition: all 0.3s;
+            max-width: 380px; margin-left: auto; margin-right: auto;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
         }
         .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 700; color: var(--highlight); font-size: 14px; }
         
         .track-info {
-            background: var(--bg-input); padding: 10px; border-radius: 8px; margin-bottom: 12px;
-            font-size: 13px; text-align: center; color: var(--text-secondary);
-            white-space: normal; word-break: break-word; transition: all 0.3s;
+            background: var(--bg-input); padding: 12px; border-radius: 10px; margin-bottom: 12px;
+            font-size: 14px; text-align: center; color: var(--text-secondary);
+            overflow: visible; white-space: normal; word-wrap: break-word; line-height: 1.4;
+            min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px;
+            border: 1px solid transparent; transition: all 0.3s;
         }
-        .track-info.active {
-            color: var(--highlight); font-weight: 700; border: 1px solid var(--highlight); 
-            box-shadow: 0 0 15px var(--glow); animation: pulse-name 2s infinite ease-in-out;
-            position: relative; overflow: visible; padding-top: 16px;
+        .track-info.active { 
+            color: var(--highlight); font-weight: 700; border-color: var(--highlight); 
+            animation: pulseGlow 2s infinite;
         }
-        .track-info.active::before {
-            content: ''; position: absolute; top: 6px; left: 20%; right: 20%; height: 3px;
-            background: linear-gradient(90deg, transparent, var(--highlight), transparent);
-            border-radius: 2px; animation: pulse-bar 1.5s infinite ease-in-out;
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 10px var(--glow); border-color: var(--highlight); }
+            50% { box-shadow: 0 0 25px var(--highlight), 0 0 15px var(--glow); border-color: #69f0ae; }
         }
-        @keyframes pulse-bar {
-            0%, 100% { opacity: 0.5; transform: scaleX(0.8); left: 20%; right: 20%; }
-            50% { opacity: 1; transform: scaleX(1.3); left: 10%; right: 10%; }
+        .equalizer {
+            display: inline-flex; align-items: flex-end; height: 16px; gap: 2px; flex-shrink: 0;
         }
-        @keyframes pulse-name {
-            0%, 100% { text-shadow: 0 0 5px var(--glow); }
-            50% { text-shadow: 0 0 15px var(--highlight), 0 0 25px var(--glow); }
+        .equalizer span {
+            width: 3px; background: var(--highlight); border-radius: 1px;
+            animation: equalize 0.8s infinite ease-in-out;
+        }
+        .equalizer span:nth-child(1) { animation-delay: 0.1s; height: 40%; }
+        .equalizer span:nth-child(2) { animation-delay: 0.3s; height: 80%; }
+        .equalizer span:nth-child(3) { animation-delay: 0.5s; height: 60%; }
+        .equalizer span:nth-child(4) { animation-delay: 0.2s; height: 90%; }
+        @keyframes equalize {
+            0%, 100% { height: 20%; }
+            50% { height: 100%; }
         }
         
         .player-controls { display: flex; justify-content: center; gap: 12px; margin-bottom: 16px; }
         .player-controls button {
             background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary);
-            width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px;
+            width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px;
             transition: all 0.2s; display: flex; align-items: center; justify-content: center;
         }
-        .player-controls button:hover { background: var(--highlight); color: white; border-color: var(--highlight); }
-        .player-controls button.play-btn { width: 48px; height: 48px; font-size: 20px; background: var(--highlight); color: white; border: none; box-shadow: 0 4px 15px var(--glow); }
+        .player-controls button:hover { background: var(--highlight); color: #000; border-color: var(--highlight); }
+        .player-controls button.play-btn { width: 56px; height: 56px; font-size: 24px; background: var(--highlight); color: #000; border: none; box-shadow: 0 4px 15px var(--glow); }
         .player-controls button.play-btn:hover { transform: scale(1.1); box-shadow: 0 6px 20px var(--glow); }
-        .player-controls button.repeat-btn { width: 32px; height: 32px; font-size: 14px; color: var(--text-secondary); }
-        .player-controls button.repeat-btn.active { color: var(--highlight); border-color: var(--highlight); background: rgba(0, 200, 83, 0.1); }
+        .player-controls button.repeat-btn { width: 36px; height: 36px; font-size: 16px; color: var(--text-secondary); }
+        .player-controls button.repeat-btn.active { color: var(--highlight); border-color: var(--highlight); background: rgba(0, 230, 118, 0.1); }
 
         .seek-control { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 11px; color: var(--text-secondary); font-family: monospace; }
         .seek-control input[type="range"] { flex: 1; accent-color: var(--highlight); cursor: pointer; height: 6px; }
         
-        /* 4-Way Circular Panner */
-        .panner-2d {
-            width: 90px; height: 90px; border-radius: 50%;
-            background: radial-gradient(circle, var(--bg-card) 0%, var(--bg-input) 100%);
-            border: 2px solid var(--border);
-            position: relative; margin: 0 auto 12px; cursor: crosshair;
-            touch-action: none; box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+        /* 4-Way Circular Panner UI */
+        .pan-control-2d {
+            display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 16px;
         }
-        .panner-knob {
-            width: 20px; height: 20px; border-radius: 50%;
-            background: var(--highlight); position: absolute;
-            top: 50%; left: 50%; transform: translate(-50%, -50%);
-            box-shadow: 0 0 12px var(--highlight), 0 0 25px var(--glow);
-            pointer-events: none; transition: transform 0.05s linear;
-            z-index: 2;
+        .d-pad {
+            position: relative; width: 110px; height: 110px;
+            background: var(--bg-input); border-radius: 50%; border: 2px solid var(--border);
+            display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr;
+            gap: 3px; padding: 6px; touch-action: none;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
         }
-        .panner-2d::before {
-            content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px;
-            background: var(--border); z-index: 1;
+        .d-btn {
+            background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-secondary);
+            font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s; border-radius: 6px;
         }
-        .panner-2d::after {
-            content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px;
-            background: var(--border); z-index: 1;
+        .d-btn:active, .d-btn.active {
+            background: var(--highlight); color: #000; border-color: var(--highlight);
+            box-shadow: 0 0 12px var(--glow); transform: scale(0.95);
         }
-        .panner-label {
-            position: absolute; font-size: 9px; color: var(--text-secondary);
-            font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
-            z-index: 1; pointer-events: none;
-        }
-        .panner-label.top { top: 6px; left: 50%; transform: translateX(-50%); }
-        .panner-label.bottom { bottom: 6px; left: 50%; transform: translateX(-50%); }
-        .panner-label.left { left: 6px; top: 50%; transform: translateY(-50%); }
-        .panner-label.right { right: 6px; top: 50%; transform: translateY(-50%); }
+        .d-btn.up { grid-column: 2; grid-row: 1; border-radius: 8px 8px 4px 4px; }
+        .d-btn.left { grid-column: 1; grid-row: 2; border-radius: 8px 4px 4px 8px; }
+        .d-btn.center { grid-column: 2; grid-row: 2; border-radius: 50%; background: var(--border); font-size: 10px; color: var(--text-primary); }
+        .d-btn.right { grid-column: 3; grid-row: 2; border-radius: 4px 8px 8px 4px; }
+        .d-btn.down { grid-column: 2; grid-row: 3; border-radius: 4px 4px 8px 8px; }
+        .pan-status { font-size: 12px; color: var(--highlight); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
 
         .device-control { margin-bottom: 12px; font-size: 12px; }
         .device-control select {
@@ -186,41 +198,51 @@
             padding: 8px; font-size: 12px; border-radius: 6px; cursor: pointer; color: var(--text-secondary); transition: background 0.2s;
         }
         .playlist-item:hover { background: var(--bg-secondary); color: var(--text-primary); }
-        .playlist-item.active { color: var(--highlight); font-weight: 700; background: rgba(0, 200, 83, 0.1); border-left: 3px solid var(--highlight); }
+        .playlist-item.active { color: var(--highlight); font-weight: 700; background: rgba(0, 230, 118, 0.1); border-left: 3px solid var(--highlight); }
 
         .file-list { margin-top: 10px; max-height: 400px; overflow-y: auto; }
         .file-item {
-            display: flex; align-items: flex-start; gap: 10px; padding: 10px;
+            display: flex; align-items: flex-start; gap: 10px; padding: 12px;
             background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px;
             cursor: grab; transition: all 0.2s;
         }
         .file-item:active { cursor: grabbing; }
-        .file-item:hover { border-color: var(--highlight); background: rgba(0, 200, 83, 0.05); }
+        .file-item:hover { border-color: var(--highlight); background: rgba(0, 230, 118, 0.05); }
         .file-icon { font-size: 22px; flex-shrink: 0; width: 28px; text-align: center; margin-top: 2px; }
         .file-info { flex: 1; min-width: 0; }
-        .file-name { 
-            font-weight: 600; font-size: 13px; white-space: normal; word-break: break-word; line-height: 1.3;
-            display: flex; align-items: center; gap: 6px;
-        }
-        .file-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-        .file-actions { display: flex; gap: 6px; flex-shrink: 0; margin-top: 4px; }
+        .file-name { font-weight: 600; font-size: 13px; white-space: normal; word-break: break-word; line-height: 1.3; display: flex; align-items: center; gap: 6px; }
+        .file-meta { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+        .file-actions { display: flex; gap: 6px; flex-shrink: 0; flex-direction: column; }
         .file-btn {
-            padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+            padding: 6px 10px; border: none; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;
         }
-        .file-btn.download { background: var(--highlight); color: white; }
+        .file-btn.download { background: var(--highlight); color: #000; }
+        .file-btn.repair { background: var(--warning); color: #000; }
         .file-btn.remove { background: rgba(255, 107, 107, 0.15); color: #ff8a8a; }
-        .file-btn.edit { background: rgba(0, 200, 83, 0.15); color: var(--highlight); }
+        .file-btn.edit { background: rgba(0, 230, 118, 0.15); color: var(--highlight); }
+
+        .download-progress {
+            width: 100%; background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; margin-top: 8px; overflow: hidden;
+        }
+        .download-progress-bar {
+            height: 100%; background: linear-gradient(90deg, var(--highlight), #69f0ae); 
+            transition: width 0.2s linear; box-shadow: 0 0 8px var(--highlight);
+        }
+        .download-progress-text {
+            font-size: 11px; color: var(--highlight); margin-top: 4px; font-weight: 700; text-align: right;
+        }
 
         .permission-wizard, .auth-screen {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.95); z-index: 9999;
+            background: rgba(5, 10, 5, 0.95); z-index: 9999;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            backdrop-filter: blur(10px); padding: 20px;
+            backdrop-filter: blur(15px); padding: 20px;
         }
         .permission-wizard.hidden, .auth-screen.hidden { display: none; }
         .wizard-container, .auth-container {
             background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
             padding: 32px; max-width: 500px; width: 100%; text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
         }
         .wizard-step { display: none; animation: fadeIn 0.3s ease; }
         .wizard-step.active { display: block; }
@@ -232,7 +254,7 @@
         .wizard-dot.active { background: var(--highlight); }
         .wizard-dot.completed { background: var(--success); }
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); z-index: 2000;
@@ -241,35 +263,59 @@
         .modal-overlay.show { display: flex; animation: fadeIn 0.3s ease; }
         .modal { background: var(--bg-card); border-radius: 20px; padding: 24px; text-align: center; max-width: 500px; width: 100%; border: 1px solid var(--border); }
         .modal .qr-container { background: white; padding: 16px; border-radius: 16px; display: inline-block; margin: 16px 0; }
-        .modal-close { padding: 10px 24px; border: none; border-radius: 10px; background: var(--highlight); color: white; font-weight: 600; cursor: pointer; margin-top: 8px; }
+        .modal-close { padding: 10px 24px; border: none; border-radius: 10px; background: var(--highlight); color: #000; font-weight: 600; cursor: pointer; margin-top: 8px; }
         
         .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
         @media (max-width: 600px) { .toast-container { left: 12px; right: 12px; bottom: 12px; } }
         .toast {
             padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
             font-size: 13px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); animation: toastIn 0.3s ease, toastOut 0.3s ease 3.5s forwards;
+            backdrop-filter: blur(10px);
         }
         @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(40px); } }
         .toast.success { border-left: 4px solid var(--success); }
-        .toast.error { border-left: 4px solid #ff6b6b; }
+        .toast.error { border-left: 4px solid var(--danger); }
         .toast.warning { border-left: 4px solid var(--warning); }
 
         .section { display: none; animation: fadeIn 0.4s ease; }
         .section.active { display: block; }
         .empty-state { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 13px; }
-        .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: rgba(0, 200, 83, 0.15); color: var(--highlight); }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: rgba(0, 230, 118, 0.15); color: var(--highlight); }
         .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .peer-list {
+            max-height: 120px; overflow-y: auto; font-size: 12px; color: var(--text-secondary);
+            margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px;
+        }
+        .peer-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
+        
+        .connection-modes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        .mode-details { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; padding: 10px; background: var(--bg-input); border-radius: 8px; border: 1px solid var(--border); }
+
+        .view-toggle {
+            display: flex; gap: 8px; margin-bottom: 12px;
+        }
+        .view-toggle button {
+            flex: 1; padding: 8px; font-size: 12px; background: var(--bg-input); border: 1px solid var(--border);
+            color: var(--text-secondary); border-radius: 8px; cursor: pointer;
+        }
+        .view-toggle button.active { background: var(--highlight); color: #000; border-color: var(--highlight); font-weight: 600; }
+
+        .folder-header {
+            font-size: 13px; font-weight: 700; color: var(--highlight); margin: 16px 0 8px 0; padding-bottom: 4px;
+            border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px;
+        }
+
         footer { text-align: center; padding: 20px 0; margin-top: auto; color: var(--text-secondary); font-size: 0.75rem; }
-        .conn-tab { animation: fadeIn 0.3s ease; }
     </style>
 </head>
 <body>
     <!-- AUTH SCREEN -->
     <div class="auth-screen" id="authScreen">
         <div class="auth-container">
-            <span class="logo" style="font-size: 3rem;">🎵</span>
+            <span class="logo" style="font-size: 3.5rem;">🎵</span>
             <h2>Music Datability</h2>
             <p>Social Music Player & P2P Auto-Sync</p>
             
@@ -301,7 +347,7 @@
             <div class="wizard-step active" id="step1">
                 <span class="wizard-icon">🎵</span>
                 <h2>Welcome to Music Datability</h2>
-                <p>Your always-on music player with P2P sync and 4-way spatial audio. We need a few permissions to enable continuous playback and Bluetooth routing.</p>
+                <p>Your always-on music player with P2P sync and 3D spatial audio. We need a few permissions to enable continuous playback and advanced routing.</p>
                 <button class="btn btn-primary btn-large" onclick="nextWizardStep()">Get Started</button>
             </div>
 
@@ -332,7 +378,7 @@
             <div class="wizard-step" id="step5">
                 <span class="wizard-icon">✅</span>
                 <h2>All Set!</h2>
-                <p>Your music player is ready. Add tracks and enjoy continuous playback with auto-sync to your devices.</p>
+                <p>Your music player is ready. Add tracks and enjoy continuous playback with auto-sync and 4-way spatial audio.</p>
                 <button class="btn btn-primary btn-large" onclick="completeWizard()">Start Playing</button>
             </div>
         </div>
@@ -342,7 +388,7 @@
         <header>
             <span class="logo">🎵</span>
             <h1>Music Datability</h1>
-            <p>Always-On Live Streaming Music Player & P2P Auto-Sync</p>
+            <p>Always-On Live Streaming & P2P Auto-Sync</p>
             <div id="userBadge" class="badge" style="margin-top: 8px; display: none;"></div>
             <button class="btn btn-sm btn-outline" onclick="logout()" id="logoutBtn" style="margin-top: 8px; width: auto; display: none;">Logout</button>
         </header>
@@ -350,50 +396,30 @@
         <!-- SETUP SCREEN -->
         <div id="setupScreen" class="section">
             <div class="card" style="max-width: 450px; margin: 0 auto;">
-                <div class="card-title"><span>🚀</span> Connection Mode</div>
-                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-                    <button class="btn btn-sm btn-primary" onclick="showConnectionTab('direct')" id="tab-direct" style="flex:1;">Direct</button>
-                    <button class="btn btn-sm btn-outline" onclick="showConnectionTab('public')" id="tab-public" style="flex:1;">Public</button>
-                    <button class="btn btn-sm btn-outline" onclick="showConnectionTab('link')" id="tab-link" style="flex:1;">By Link</button>
+                <div class="card-title"><span>🚀</span> Create or Join Music Room</div>
+                
+                <div class="card-title" style="margin-top: 16px; font-size: 13px;"><span>🔗</span> Connection Modes</div>
+                <div class="connection-modes">
+                    <button class="btn btn-outline btn-sm" onclick="setConnectionMode('direct')">Direct</button>
+                    <button class="btn btn-outline btn-sm" onclick="setConnectionMode('public')">Public Explore</button>
+                    <button class="btn btn-outline btn-sm" onclick="setConnectionMode('linein')">Line-In / Aux</button>
                 </div>
+                <div id="connectionModeDetails" class="mode-details">Direct: Use Room ID to connect securely peer-to-peer.</div>
 
-                <div id="conn-direct" class="conn-tab">
-                    <div class="input-group">
-                        <label>Your Device Identifier</label>
-                        <input type="text" class="input-field identifier" id="myIdentifier" placeholder="e.g. laptop-main" maxlength="30">
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                        <button class="btn btn-primary" id="createRoomBtn" onclick="createRoom()">✨ Create Room</button>
-                        <div>
-                            <input type="text" class="input-field identifier" id="joinIdentifier" placeholder="Room ID" style="margin-bottom: 8px;">
-                            <button class="btn btn-success" id="joinRoomBtn" onclick="joinRoom()">🔗 Join</button>
-                        </div>
+                <div class="input-group">
+                    <label>Your Device Identifier</label>
+                    <input type="text" class="input-field identifier" id="myIdentifier" placeholder="e.g. laptop-main" maxlength="30">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button class="btn btn-primary" id="createRoomBtn" onclick="createRoom()">✨ Create Room</button>
+                    <div>
+                        <input type="text" class="input-field identifier" id="joinIdentifier" placeholder="Room ID" style="margin-bottom: 8px;">
+                        <button class="btn btn-success" id="joinRoomBtn" onclick="joinRoom()">🔗 Join</button>
                     </div>
                 </div>
-
-                <div id="conn-public" class="conn-tab" style="display: none;">
-                    <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Join a public music session or create one for others to explore.</p>
-                    <button class="btn btn-primary" onclick="createPublicRoom()">🌍 Create Public Room</button>
-                    <div style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;">
-                        <label style="font-size: 12px; color: var(--text-secondary);">Join Public Room ID:</label>
-                        <div style="display: flex; gap: 8px; margin-top: 6px;">
-                            <input type="text" class="input-field" id="publicJoinId" placeholder="public-XXXX">
-                            <button class="btn btn-success btn-sm" onclick="joinRoom(document.getElementById('publicJoinId').value)">Join</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="conn-link" class="conn-tab" style="display: none;">
-                    <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Share this link or scan the QR code to let others join instantly.</p>
-                    <button class="btn btn-outline" onclick="generateJoinLink()" style="width: 100%;">🔗 Generate Join Link</button>
-                    <div id="linkResult" style="margin-top: 12px; display: none;">
-                        <input type="text" class="input-field" id="generatedLink" readonly style="font-size: 12px; margin-bottom: 8px;">
-                        <div style="display: flex; gap: 8px;">
-                            <button class="btn btn-sm btn-primary" style="flex:1" onclick="copyGeneratedLink()">📋 Copy Link</button>
-                            <button class="btn btn-sm btn-outline" style="flex:1" onclick="showRoomQR()">📱 Show QR</button>
-                        </div>
-                    </div>
-                </div>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 16px; text-align: center; line-height: 1.5;">
+                    💡 <strong>Auto-Connect:</strong> Scan the QR code with your phone camera to auto-join instantly.
+                </p>
             </div>
         </div>
 
@@ -402,6 +428,11 @@
             <div id="statusBar" class="status-bar disconnected">
                 <div class="status-dot"></div>
                 <span id="statusText">Disconnected</span>
+            </div>
+
+            <div id="offlineBanner" class="status-bar offline-warning" style="display: none;">
+                <span>⚠️ Laptop disconnected. Switch to Offline Mode to continue listening to downloaded music.</span>
+                <button class="btn btn-sm btn-success" onclick="enableOfflineMode()" style="width: auto;">Go Offline</button>
             </div>
 
             <div class="main-grid">
@@ -414,7 +445,11 @@
                             <button class="btn btn-outline btn-sm" onclick="copyRoomCode()" style="width: auto;">📋</button>
                             <button class="btn btn-outline btn-sm" onclick="showRoomQR()" style="width: auto;">📱</button>
                         </div>
-                        <button class="btn btn-danger btn-sm" onclick="leaveRoom()"> Leave Room</button>
+                        <button class="btn btn-danger btn-sm" onclick="leaveRoom()">Leave Room</button>
+                        
+                        <div class="peer-list" id="peerList">
+                            <div class="empty-state">No devices connected</div>
+                        </div>
                     </div>
 
                     <div class="card">
@@ -429,7 +464,7 @@
                             🔄 Refresh Devices
                         </button>
                         <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
-                            Select your Bluetooth device from the dropdown in each player. Use the 4-way circular panner for spatial audio.
+                            Select your Bluetooth device from the dropdown in each player. Audio will route automatically.
                         </p>
                     </div>
                 </div>
@@ -474,7 +509,14 @@
                     </div>
 
                     <div class="card">
-                        <div class="card-title"><span>📚</span> Library <span class="badge" id="libCount">0</span></div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                            <div class="card-title" style="margin: 0;"><span>📚</span> Library <span class="badge" id="libCount">0</span></div>
+                            <button class="btn btn-sm btn-outline" onclick="repairAllMissing()" id="repairAllBtn" style="display: none; width: auto;">🔄 Repair Missing</button>
+                        </div>
+                        <div class="view-toggle">
+                            <button class="active" id="viewListBtn" onclick="setViewMode('list')">📄 List View</button>
+                            <button id="viewFolderBtn" onclick="setViewMode('folder')">📁 Folder View</button>
+                        </div>
                         <div class="file-list" id="libraryList">
                             <div class="empty-state">No tracks yet. Drop, paste, or scan local files!</div>
                         </div>
@@ -512,20 +554,6 @@
         </div>
     </div>
 
-    <!-- Offline Mode Modal -->
-    <div class="modal-overlay" id="offlineModal">
-        <div class="modal">
-            <h3 style="margin-bottom: 12px; font-size: 1.2rem; color: var(--warning);">⚠️ Host Disconnected</h3>
-            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
-                The host laptop has disconnected. You can switch to <strong>Offline Mode</strong> to continue listening to music you have already downloaded, or try to reconnect.
-            </p>
-            <div style="display: flex; gap: 8px;">
-                <button class="btn btn-outline" style="flex:1" onclick="attemptReconnect()">🔄 Reconnect</button>
-                <button class="btn btn-success" style="flex:1" onclick="enableOfflineMode()">📴 Offline Mode</button>
-            </div>
-        </div>
-    </div>
-
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
@@ -542,6 +570,8 @@
         const receivingTracks = {};
         let scannedFiles = [];
         window.pendingPlayTrackId = null;
+        let isOfflineMode = false;
+        let viewMode = 'list'; // 'list' or 'folder'
 
         // ==================== AUTH SYSTEM ====================
         function handleAuth(mode) {
@@ -664,15 +694,26 @@
             });
         }
 
+        async function updateTrackName(trackId, newName) {
+            const db = await dbPromise;
+            const tx = db.transaction('metadata', 'readwrite');
+            const store = tx.objectStore('metadata');
+            const req = store.get(trackId);
+            req.onsuccess = () => {
+                const data = req.result;
+                if (data) {
+                    data.name = newName;
+                    store.put(data);
+                    renderLibrary();
+                    showToast('✅ File name updated!', 'success');
+                }
+            };
+        }
+
         async function deleteTrack(id) {
-            if (receivingTracks[id]) {
-                showToast('⚠️ Please wait for download to complete before deleting.', 'warning');
+            if (!confirm('Are you sure you want to permanently delete this audio file? This cannot be undone.')) {
                 return;
             }
-            if (!confirm('Are you sure you want to permanently delete this audio file? This action cannot be undone.')) {
-                return;
-            }
-            
             const db = await dbPromise;
             let tx = db.transaction('metadata', 'readwrite');
             tx.objectStore('metadata').delete(id);
@@ -691,52 +732,7 @@
             });
             
             renderLibrary();
-            showToast('🗑️ Track permanently deleted', 'success');
-        }
-
-        async function editTrackName(id, currentName) {
-            const nameEl = document.getElementById(`file-name-${id}`);
-            if (!nameEl) return;
-            
-            nameEl.innerHTML = `<input type="text" id="edit-input-${id}" value="${currentName}" style="width:100%; background:var(--bg-secondary); border:1px solid var(--highlight); color:var(--text-primary); padding:4px; border-radius:4px; font-size:13px;">`;
-            const input = document.getElementById(`edit-input-${id}`);
-            input.focus();
-            input.select();
-            
-            const save = async () => {
-                const newName = input.value.trim();
-                if (newName && newName !== currentName) {
-                    const db = await dbPromise;
-                    const tx = db.transaction('metadata', 'readwrite');
-                    const req = tx.objectStore('metadata').get(id);
-                    req.onsuccess = () => {
-                        const track = req.result;
-                        track.name = newName;
-                        const tx2 = db.transaction('metadata', 'readwrite');
-                        tx2.objectStore('metadata').put(track);
-                        tx2.oncomplete = () => {
-                            showToast('✅ File name updated!', 'success');
-                            renderLibrary();
-                            Object.values(players).forEach(p => {
-                                const t = p.playlist.find(t => t.id === id);
-                                if (t) t.name = newName;
-                                if (p.currentTrack && p.currentTrack.id === id) {
-                                    p.currentTrack.name = newName;
-                                    p.updateUI();
-                                }
-                            });
-                        };
-                    };
-                } else {
-                    renderLibrary(); // Revert
-                }
-            };
-            
-            input.addEventListener('blur', save);
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') { input.blur(); }
-                if (e.key === 'Escape') { renderLibrary(); }
-            });
+            showToast('🗑️ Track permanently removed', 'success');
         }
 
         // ==================== STATE & UTILS ====================
@@ -882,7 +878,7 @@
         function startAggressiveReconnect() {
             if (window.reconnectInterval) clearInterval(window.reconnectInterval);
             window.reconnectInterval = setInterval(() => {
-                if (isHost) return; 
+                if (isHost || isOfflineMode) return; 
                 if (Object.keys(connections).length === 0 && window.lastJoinedRoom && peer) {
                     console.log("🔄 Aggressively reconnecting to", window.lastJoinedRoom);
                     try {
@@ -906,20 +902,31 @@
                 this.playAttemptCount = 0;
                 this.currentDeviceId = '';
                 this.repeatMode = 0; 
+                this.panX = 0;
+                this.panY = 0;
                 
                 this.audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
                 try {
                     this.source = this.audioContext.createMediaElementSource(this.audio);
-                    // Use PannerNode for 4-way spatial audio (Top/Bottom/Left/Right)
-                    this.panner = new PannerNode(this.audioContext, {
-                        panningModel: 'equalpower',
-                        distanceModel: 'linear',
-                        positionX: 0,
-                        positionY: 0,
-                        positionZ: 0
-                    });
+                    // Use PannerNode for 3D spatial audio (Left/Right/Top/Bottom)
+                    this.panner = this.audioContext.createPanner();
+                    this.panner.panningModel = 'HRTF';
+                    this.panner.distanceModel = 'inverse';
+                    this.panner.refDistance = 1;
+                    this.panner.maxDistance = 10000;
+                    this.panner.rolloffFactor = 1;
+                    this.panner.coneInnerAngle = 360;
+                    
+                    // Add a subtle filter for Top/Bottom perception
+                    this.toneFilter = this.audioContext.createBiquadFilter();
+                    this.toneFilter.type = 'highshelf';
+                    this.toneFilter.frequency.value = 3000;
+                    this.toneFilter.gain.value = 0;
+
                     this.source.connect(this.panner);
-                    this.panner.connect(this.audioContext.destination);
+                    this.panner.connect(this.toneFilter);
+                    this.toneFilter.connect(this.audioContext.destination);
+                    this.setPan2D(0, 0);
                 } catch (e) { console.warn('Audio graph setup failed:', e); }
                 
                 this.audio.addEventListener('ended', () => this.playNext());
@@ -936,44 +943,55 @@
                 this.render();
             }
 
-            setupPanner() {
-                const container = document.getElementById(`panner-${this.id}`);
-                const knob = document.getElementById(`panner-knob-${this.id}`);
-                if (!container || !knob) return;
+            setPan2D(x, y) {
+                this.panX = x;
+                this.panY = y;
+                if (this.panner) {
+                    this.panner.setPosition(x, y, 0);
+                }
+                if (this.toneFilter) {
+                    // Simulate top/bottom with subtle high-shelf adjustment
+                    this.toneFilter.gain.value = y * 3; // +3dB for top, -3dB for bottom
+                }
                 
-                let isDragging = false;
+                const card = document.getElementById(`player-${this.id}`);
+                card.querySelectorAll('.d-btn').forEach(btn => btn.classList.remove('active'));
+                
+                let status = 'Center';
+                if (x === -1 && y === 0) { card.querySelector('.d-btn.left').classList.add('active'); status = 'Left'; }
+                else if (x === 1 && y === 0) { card.querySelector('.d-btn.right').classList.add('active'); status = 'Right'; }
+                else if (x === 0 && y === 1) { card.querySelector('.d-btn.up').classList.add('active'); status = 'Top'; }
+                else if (x === 0 && y === -1) { card.querySelector('.d-btn.down').classList.add('active'); status = 'Bottom'; }
+                else if (x === 0 && y === 0) { card.querySelector('.d-btn.center').classList.add('active'); status = 'Center'; }
+                
+                const statusEl = document.getElementById(`pan-status-${this.id}`);
+                if (statusEl) statusEl.textContent = `Spatial: ${status}`;
+            }
 
-                const updatePanner = (clientX, clientY) => {
-                    const rect = container.getBoundingClientRect();
-                    const centerX = rect.left + rect.width / 2;
-                    const centerY = rect.top + rect.height / 2;
+            setupSwipe(dpadElement) {
+                let startX, startY;
+                dpadElement.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                }, {passive: true});
+                dpadElement.addEventListener('touchend', (e) => {
+                    if (!startX || !startY) return;
+                    let endX = e.changedTouches[0].clientX;
+                    let endY = e.changedTouches[0].clientY;
+                    let diffX = endX - startX;
+                    let diffY = endY - startY;
                     
-                    let x = (clientX - centerX) / (rect.width / 2);
-                    let y = (clientY - centerY) / (rect.height / 2);
+                    if (Math.abs(diffX) < 20 && Math.abs(diffY) < 20) return; // Tap, handled by onclick
                     
-                    // Clamp between -1 and 1
-                    x = Math.max(-1, Math.min(1, x));
-                    y = Math.max(-1, Math.min(1, y));
-                    
-                    // Move knob (max 28px radius)
-                    knob.style.transform = `translate(calc(-50% + ${x * 28}px), calc(-50% + ${y * 28}px))`;
-                    
-                    // Update Web Audio API PannerNode
-                    if (this.panner) {
-                        this.panner.positionX.value = x;
-                        this.panner.positionY.value = y; // +Y is Top, -Y is Bottom
-                        this.panner.positionZ.value = 0;
+                    if (Math.abs(diffX) > Math.abs(diffY)) {
+                        if (diffX > 30) this.setPan2D(1, 0);
+                        else if (diffX < -30) this.setPan2D(-1, 0);
+                    } else {
+                        if (diffY > 30) this.setPan2D(0, 1); // Up is positive Y in DOM, but let's map swipe up to Y=1
+                        else if (diffY < -30) this.setPan2D(0, -1);
                     }
-                };
-
-                container.addEventListener('mousedown', (e) => { isDragging = true; updatePanner(e.clientX, e.clientY); });
-                container.addEventListener('touchstart', (e) => { isDragging = true; updatePanner(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive: false});
-                
-                window.addEventListener('mousemove', (e) => { if (isDragging) updatePanner(e.clientX, e.clientY); });
-                window.addEventListener('touchmove', (e) => { if (isDragging) { updatePanner(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); } }, {passive: false});
-                
-                window.addEventListener('mouseup', () => { isDragging = false; });
-                window.addEventListener('touchend', () => { isDragging = false; });
+                    startX = null; startY = null;
+                }, {passive: true});
             }
 
             async setOutput(deviceId) {
@@ -1172,7 +1190,7 @@
             updateMediaSession() {
                 if ('mediaSession' in navigator && this.currentTrack) {
                     navigator.mediaSession.metadata = new MediaMetadata({
-                        title: this.currentTrack.name, artist: 'Music Datability Player', album: 'P2P Sync Library'
+                        title: this.currentTrack.name, artist: 'Music Datability', album: 'P2P Sync Library'
                     });
                     navigator.mediaSession.setActionHandler('play', () => this.play());
                     navigator.mediaSession.setActionHandler('pause', () => this.pause());
@@ -1206,12 +1224,15 @@
                         <button class="repeat-btn" onclick="players[${this.id}].toggleRepeat()" id="repeat-btn-${this.id}" title="Repeat: None">➡️</button>
                     </div>
 
-                    <div class="panner-2d" id="panner-${this.id}">
-                        <div class="panner-knob" id="panner-knob-${this.id}"></div>
-                        <div class="panner-label top">Top</div>
-                        <div class="panner-label bottom">Bottom</div>
-                        <div class="panner-label left">Left</div>
-                        <div class="panner-label right">Right</div>
+                    <div class="pan-control-2d">
+                        <div class="d-pad" id="dpad-${this.id}">
+                            <button class="d-btn up" onclick="players[${this.id}].setPan2D(0, 1)">▲</button>
+                            <button class="d-btn left" onclick="players[${this.id}].setPan2D(-1, 0)">◀</button>
+                            <button class="d-btn center" onclick="players[${this.id}].setPan2D(0, 0)">●</button>
+                            <button class="d-btn right" onclick="players[${this.id}].setPan2D(1, 0)">▶</button>
+                            <button class="d-btn down" onclick="players[${this.id}].setPan2D(0, -1)">▼</button>
+                        </div>
+                        <div class="pan-status" id="pan-status-${this.id}">Spatial: Center</div>
                     </div>
 
                     <div class="device-control">
@@ -1227,7 +1248,10 @@
                 
                 document.getElementById(`seek-${this.id}`).addEventListener('input', (e) => this.seek(e.target.value));
                 populateDeviceSelect(this.id);
-                this.setupPanner();
+
+                // Setup swipe for D-pad
+                const dpad = document.getElementById(`dpad-${this.id}`);
+                this.setupSwipe(dpad);
 
                 div.ondragover = (e) => {
                     e.preventDefault();
@@ -1262,8 +1286,12 @@
                 const info = document.getElementById(`track-info-${this.id}`);
                 const btn = document.getElementById(`play-btn-${this.id}`);
                 if (this.currentTrack) {
-                    info.textContent = `${this.currentTrack.name} ${this.isPlaying ? '▶' : '⏸'}`;
+                    const eq = this.isPlaying ? `<div class="equalizer"><span></span><span></span><span></span><span></span></div>` : '';
+                    info.innerHTML = `${eq}<span class="track-name">${this.currentTrack.name}</span> ${this.isPlaying ? '▶' : '⏸'}`;
                     info.className = `track-info ${this.isPlaying ? 'active' : ''}`;
+                } else {
+                    info.innerHTML = 'No track loaded';
+                    info.className = 'track-info';
                 }
                 btn.textContent = this.isPlaying ? '⏸' : '▶';
                 this.renderPlaylist();
@@ -1291,8 +1319,6 @@
             const connectedCount = Object.keys(connections).length;
             if (anyPlaying) setStatus('playing', `🎵 Playing • ${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
             else if (connectedCount > 0) setStatus('connected', `${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
-            else if (!isHost) setStatus('offline', 'Offline Mode Active');
-            else setStatus('disconnected', 'Disconnected');
         }
 
         async function populateDeviceSelect(playerId) {
@@ -1346,9 +1372,17 @@
         // ==================== LIBRARY & INGEST ====================
         async function processNewAudioFile(file, skipRender = false) {
             const id = 'file_' + Date.now() + '_' + generateId();
-            // Extract folder path if available (e.g., from webkitdirectory or phone scan)
-            const folderPath = file.webkitRelativePath ? file.webkitRelativePath.split('/').slice(0, -1).join('/') : 'Local Storage';
-            const trackMeta = { id, name: file.name, folder: folderPath, size: file.size, type: file.type || 'audio/mpeg', isStream: false, timestamp: Date.now() };
+            // Extract folder name if available (from webkitRelativePath)
+            let folder = 'Phone Music';
+            if (file.webkitRelativePath) {
+                const parts = file.webkitRelativePath.split('/');
+                if (parts.length > 1) folder = parts[parts.length - 2];
+            }
+            
+            const trackMeta = { 
+                id, name: file.name, size: file.size, type: file.type || 'audio/mpeg', 
+                isStream: false, timestamp: Date.now(), folder: folder 
+            };
             await saveMetadata(trackMeta);
             await saveBlob(id, file);
             
@@ -1364,11 +1398,28 @@
             const url = document.getElementById('streamUrl').value.trim();
             if (!url) return;
             const name = prompt('Track Name:', 'Streamed Track') || 'Streamed Track';
-            const track = { id: 'stream_' + Date.now(), name, folder: 'Stream', type: 'audio/mpeg', url, isStream: true, timestamp: Date.now() };
+            const track = { id: 'stream_' + Date.now(), name, type: 'audio/mpeg', url, isStream: true, timestamp: Date.now(), folder: 'Streams' };
             saveMetadata(track);
             renderLibrary();
             document.getElementById('streamUrl').value = '';
             showToast('✅ Stream URL added to library!', 'success');
+        }
+
+        function updateDownloadProgress(trackId) {
+            const rt = receivingTracks[trackId];
+            if (!rt || !rt.totalSize) return;
+            const pct = Math.min(100, Math.round((rt.received / rt.totalSize) * 100));
+            const progressBar = document.getElementById(`progress-bar-${trackId}`);
+            const progressText = document.getElementById(`progress-text-${trackId}`);
+            if (progressBar) progressBar.style.width = `${pct}%`;
+            if (progressText) progressText.textContent = `Downloading... ${pct}%`;
+        }
+
+        function setViewMode(mode) {
+            viewMode = mode;
+            document.getElementById('viewListBtn').className = mode === 'list' ? 'active' : '';
+            document.getElementById('viewFolderBtn').className = mode === 'folder' ? 'active' : '';
+            renderLibrary();
         }
 
         async function renderLibrary() {
@@ -1397,8 +1448,29 @@
             
             const hasBlobs = await Promise.all(blobPromises);
             
-            tracks.sort((a, b) => b.timestamp - a.timestamp).forEach((track, index) => {
-                const hasBlob = hasBlobs[index];
+            // Group by folder if in folder view
+            let displayTracks = tracks;
+            if (viewMode === 'folder') {
+                displayTracks = tracks.sort((a, b) => (a.folder || 'Unknown').localeCompare(b.folder || 'Unknown'));
+            } else {
+                displayTracks = tracks.sort((a, b) => b.timestamp - a.timestamp);
+            }
+
+            let currentFolder = '';
+            
+            displayTracks.forEach((track, index) => {
+                // Find original index for hasBlobs array
+                const originalIndex = tracks.findIndex(t => t.id === track.id);
+                const hasBlob = hasBlobs[originalIndex];
+                
+                if (viewMode === 'folder' && track.folder !== currentFolder) {
+                    currentFolder = track.folder || 'Unknown';
+                    const folderHeader = document.createElement('div');
+                    folderHeader.className = 'folder-header';
+                    folderHeader.innerHTML = `<span>📁</span> ${currentFolder}`;
+                    container.appendChild(folderHeader);
+                }
+
                 const div = document.createElement('div');
                 div.className = 'file-item';
                 div.draggable = true;
@@ -1408,19 +1480,14 @@
                 };
                 
                 let progressHtml = '';
-                if (receivingTracks[track.id]) {
-                    const rt = receivingTracks[track.id];
+                const rt = receivingTracks[track.id];
+                if (rt && rt.totalSize > 0) {
                     const pct = Math.min(100, Math.round((rt.received / rt.totalSize) * 100));
                     progressHtml = `
-                        <div id="download-progress-${track.id}" style="margin-top: 8px; width: 100%;">
-                            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; color: var(--highlight); font-weight: 700;">
-                                <span>⬇ Downloading...</span>
-                                <span id="progress-text-${track.id}">${pct}%</span>
-                            </div>
-                            <div style="width: 100%; height: 6px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden; border: 1px solid var(--border);">
-                                <div id="progress-bar-${track.id}" style="width: ${pct}%; height: 100%; background: linear-gradient(90deg, var(--accent-light), var(--highlight)); transition: width 0.1s linear; box-shadow: 0 0 8px var(--glow);"></div>
-                            </div>
+                        <div class="download-progress">
+                            <div id="progress-bar-${track.id}" class="download-progress-bar" style="width: ${pct}%"></div>
                         </div>
+                        <div id="progress-text-${track.id}" class="download-progress-text">Downloading... ${pct}%</div>
                     `;
                 }
 
@@ -1428,22 +1495,21 @@
                 if (hasBlob) {
                     actionButtons = `
                         <button class="file-btn download" onclick="playTrackInActivePlayer('${track.id}')">▶ Play</button>
-                        <button class="file-btn edit" onclick="editTrackName('${track.id}', '${track.name.replace(/'/g, "\\'")}')">✏️</button>
-                        <button class="file-btn remove" onclick="deleteTrack('${track.id}')">✕</button>
+                        <button class="file-btn edit" onclick="promptEditName('${track.id}')">✏️ Edit</button>
+                        <button class="file-btn remove" onclick="deleteTrack('${track.id}')">🗑️ Delete</button>
                     `;
                 } else {
                     actionButtons = `
-                        <button class="file-btn download" style="background: var(--warning); color: #000;" onclick="requestTrackDownload('${track.id}')">⬇ Download</button>
-                        <button class="file-btn edit" onclick="editTrackName('${track.id}', '${track.name.replace(/'/g, "\\'")}')">✏️</button>
-                        <button class="file-btn remove" onclick="deleteTrack('${track.id}')">✕</button>
+                        <button class="file-btn repair" onclick="requestTrackDownload('${track.id}')">🔄 Repair / Download</button>
+                        <button class="file-btn remove" onclick="deleteTrack('${track.id}')">🗑️ Delete</button>
                     `;
                 }
 
                 div.innerHTML = `
                     <div class="file-icon">${hasBlob ? '🎵' : '☁️'}</div>
                     <div class="file-info">
-                        <div class="file-name" id="file-name-${track.id}" title="${track.name}">${track.name}</div>
-                        <div class="file-meta">📁 ${track.folder || 'Unknown'} • ${hasBlob ? formatSize(track.size) : 'Available on Laptop'}</div>
+                        <div class="file-name" title="${track.name}">${track.name}</div>
+                        <div class="file-meta">${hasBlob ? formatSize(track.size) : 'Available on Laptop'} ${track.folder ? '• 📁 ' + track.folder : ''}</div>
                         ${progressHtml}
                     </div>
                     <div class="file-actions">
@@ -1452,10 +1518,37 @@
                 `;
                 container.appendChild(div);
             });
+            
+            // Show repair all button if client and missing blobs exist
+            const repairBtn = document.getElementById('repairAllBtn');
+            if (!isHost && !isOfflineMode && hasBlobs.includes(false)) {
+                repairBtn.style.display = 'inline-flex';
+            } else {
+                repairBtn.style.display = 'none';
+            }
+        }
+
+        function promptEditName(trackId) {
+            const db = dbPromise.then(db => {
+                const tx = db.transaction('metadata', 'readonly');
+                const req = tx.objectStore('metadata').get(trackId);
+                req.onsuccess = () => {
+                    const currentName = req.result ? req.result.name : 'Unknown';
+                    // Remove extension for cleaner editing
+                    const nameWithoutExt = currentName.replace(/\.[^/.]+$/, "");
+                    const newName = prompt("Enter new file name:", nameWithoutExt);
+                    if (newName && newName.trim() !== "" && newName.trim() !== nameWithoutExt) {
+                        // Re-add extension if it existed
+                        const ext = currentName.match(/\.[^/.]+$/);
+                        const finalName = ext ? newName.trim() + ext[0] : newName.trim();
+                        updateTrackName(trackId, finalName);
+                    }
+                };
+            });
         }
 
         function requestTrackDownload(trackId) {
-            if (!isHost) {
+            if (!isHost && !isOfflineMode) {
                 const hostConn = Object.values(connections)[0];
                 if (hostConn) {
                     showToast('⬇ Requesting download from laptop...', 'success');
@@ -1463,6 +1556,33 @@
                 } else {
                     showToast('⚠️ Not connected to laptop', 'error');
                 }
+            }
+        }
+
+        async function repairAllMissing() {
+            const tracks = await getAllMetadata();
+            const db = await dbPromise;
+            const tx = db.transaction('blobs', 'readonly');
+            const store = tx.objectStore('blobs');
+            
+            let missingCount = 0;
+            for (const track of tracks) {
+                const req = store.get(track.id);
+                await new Promise(resolve => {
+                    req.onsuccess = () => {
+                        if (!req.result) {
+                            missingCount++;
+                            requestTrackDownload(track.id);
+                        }
+                        resolve();
+                    };
+                });
+            }
+            
+            if (missingCount > 0) {
+                showToast(`🔄 Repairing ${missingCount} missing files from laptop...`, 'success');
+            } else {
+                showToast('✅ All files are present and cached!', 'success');
             }
         }
 
@@ -1481,8 +1601,8 @@
                 }
 
                 const blob = await getBlob(track.id);
-                if (!blob && !isHost) {
-                    showToast('⬇️ Track not on phone. Downloading from laptop...', 'success');
+                if (!blob && !isHost && !isOfflineMode) {
+                    showToast('⬇️ Track not on phone. Downloading from laptop first...', 'success');
                     window.pendingPlayTrackId = trackId;
                     requestTrackDownload(trackId);
                     return;
@@ -1562,20 +1682,38 @@
             if (files.length === 0) {
                 list.innerHTML = '<div class="empty-state">No audio files found.</div>';
             } else {
+                // Group by folder for scan results too
+                const grouped = {};
                 files.forEach((file, index) => {
-                    const folderPath = file.webkitRelativePath ? file.webkitRelativePath.split('/').slice(0, -1).join('/') : 'Phone Storage';
-                    const div = document.createElement('div');
-                    div.className = 'file-item';
-                    div.innerHTML = `
-                        <input type="checkbox" class="scan-checkbox" data-index="${index}" checked style="margin-right: 10px; width: 20px; height: 20px; accent-color: var(--highlight);">
-                        <div class="file-icon">🎵</div>
-                        <div class="file-info">
-                            <div class="file-name">${file.name}</div>
-                            <div class="file-meta">📁 ${folderPath} • ${formatSize(file.size)}</div>
-                        </div>
-                    `;
-                    list.appendChild(div);
+                    let folder = 'Phone Music';
+                    if (file.webkitRelativePath) {
+                        const parts = file.webkitRelativePath.split('/');
+                        if (parts.length > 1) folder = parts[parts.length - 2];
+                    }
+                    if (!grouped[folder]) grouped[folder] = [];
+                    grouped[folder].push({ file, index });
                 });
+
+                for (const [folder, items] of Object.entries(grouped)) {
+                    const folderHeader = document.createElement('div');
+                    folderHeader.className = 'folder-header';
+                    folderHeader.innerHTML = `<span>📁</span> ${folder}`;
+                    list.appendChild(folderHeader);
+
+                    items.forEach(({ file, index }) => {
+                        const div = document.createElement('div');
+                        div.className = 'file-item';
+                        div.innerHTML = `
+                            <input type="checkbox" class="scan-checkbox" data-index="${index}" checked style="margin-right: 10px; width: 20px; height: 20px; accent-color: var(--highlight); margin-top: 4px;">
+                            <div class="file-icon">🎵</div>
+                            <div class="file-info">
+                                <div class="file-name">${file.name}</div>
+                                <div class="file-meta">${formatSize(file.size)}</div>
+                            </div>
+                        `;
+                        list.appendChild(div);
+                    });
+                }
             }
             document.getElementById('scanModal').classList.add('show');
         }
@@ -1592,18 +1730,18 @@
                 return;
             }
             
-            showToast(`⏳ Adding ${checkboxes.length} tracks to library...`);
+            showToast(`⏳ Saving ${checkboxes.length} tracks to local storage...`);
             const btn = document.getElementById('addSelectedToLibBtn');
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Adding...';
+            btn.innerHTML = '<span class="spinner"></span> Saving...';
             
             for (const cb of checkboxes) {
                 const file = scannedFiles[parseInt(cb.dataset.index)];
-                await processNewAudioFile(file, true);
+                await processNewAudioFile(file, true); // Ensure it downloads/saves to IndexedDB before moving on
             }
             
             renderLibrary();
-            showToast(`✅ Added ${checkboxes.length} tracks to library!`, 'success');
+            showToast(`✅ Successfully saved ${checkboxes.length} tracks to library!`, 'success');
             btn.disabled = false;
             btn.innerHTML = 'Add Selected to Library';
             closeScanModal();
@@ -1633,15 +1771,7 @@
             const btn = document.getElementById('createRoomBtn');
             btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Creating...';
 
-            peer = new Peer(identifier, { 
-                debug: 0, 
-                config: { 
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
-                    ] 
-                } 
-            });
+            peer = new Peer(identifier, { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
 
             peer.on('open', (id) => {
                 myPeerId = id; isHost = true;
@@ -1678,15 +1808,7 @@
             }
 
             const uniqueId = `${roomId}-client-${generateId()}`;
-            peer = new Peer(uniqueId, { 
-                debug: 0, 
-                config: { 
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
-                    ] 
-                } 
-            });
+            peer = new Peer(uniqueId, { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
 
             peer.on('open', (id) => {
                 myPeerId = id; isHost = false;
@@ -1724,7 +1846,7 @@
         }
 
         function updateUIMode() {
-            if (!isHost) {
+            if (!isHost && !isOfflineMode) {
                 const dropZone = document.getElementById('globalDropZone');
                 if (dropZone) {
                     dropZone.innerHTML = `
@@ -1781,6 +1903,23 @@
             }
         }
 
+        function updatePeerList() {
+            const list = document.getElementById('peerList');
+            if (!list) return;
+            list.innerHTML = '';
+            const peers = Object.keys(connections);
+            if (peers.length === 0) {
+                list.innerHTML = '<div class="empty-state">No devices connected</div>';
+            } else {
+                peers.forEach((p, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'peer-item';
+                    div.innerHTML = `<span>📱 Device ${i + 1} (${p.substr(0, 8)}...)</span><span class="badge">Connected</span>`;
+                    list.appendChild(div);
+                });
+            }
+        }
+
         function handleConnection(conn) {
             const peerId = conn.peer;
             conn.on('open', () => {
@@ -1788,6 +1927,7 @@
                 closeQR();
                 setStatus('connected', `Connected to Laptop`);
                 showToast('🎉 Connected to Laptop! Syncing library...', 'success');
+                updatePeerList();
                 
                 if (!isHost) {
                     conn.send({ type: 'library-sync-request' });
@@ -1822,7 +1962,7 @@
                         tracks.forEach(track => {
                             setTimeout(() => {
                                 sendTrackChunks(track.id, conn);
-                            }, sentCount * 150);
+                            }, sentCount * 100);
                             sentCount++;
                         });
                         showToast(`📤 Queued ${sentCount} tracks for transfer`, 'success');
@@ -1848,16 +1988,7 @@
                     }
                     receivingTracks[data.trackId].chunks[data.offset] = data.buffer;
                     receivingTracks[data.trackId].received += data.buffer.byteLength;
-                    
-                    // Real-time 1% to 100% downloading indicator update
-                    const rt = receivingTracks[data.trackId];
-                    const pct = Math.min(100, Math.round((rt.received / rt.totalSize) * 100));
-                    
-                    const bar = document.getElementById(`progress-bar-${data.trackId}`);
-                    const text = document.getElementById(`progress-text-${data.trackId}`);
-                    if (bar) bar.style.width = `${pct}%`;
-                    if (text) text.textContent = `${pct}%`;
-                    
+                    updateDownloadProgress(data.trackId); // Real-time 1% to 100% update
                 } else if (data.type === 'track-complete') {
                     completeTrackReceive(data.trackId);
                 } else if (data.type === 'track-error') {
@@ -1895,11 +2026,14 @@
 
             conn.on('close', () => {
                 delete connections[peerId];
+                updatePeerList();
                 updateGlobalStatus();
-                if (!isHost && Object.keys(connections).length === 0) {
-                    showOfflineModePrompt();
+                
+                if (!isHost && !isOfflineMode && Object.keys(connections).length === 0) {
+                    document.getElementById('offlineBanner').style.display = 'flex';
+                    showToast('⚠️ Laptop disconnected. Switch to Offline Mode to continue listening.', 'warning');
                 }
-                showToast('⚠️ Connection lost. Reconnecting...', 'warning');
+                
                 for (const tid in receivingTracks) {
                     delete receivingTracks[tid];
                 }
@@ -1940,7 +2074,7 @@
                 });
             })();
 
-            const chunkSize = 32768; // 32KB chunks for better throughput with 10+ connections
+            const chunkSize = 65536; // 64KB chunks for better throughput
             let offset = 0;
             const totalSize = blob.size;
             
@@ -1956,7 +2090,7 @@
                     const buffer = await chunk.arrayBuffer();
                     conn.send({ type: 'track-chunk', trackId, offset, buffer, totalSize });
                     offset += chunkSize;
-                    setTimeout(sendNext, 0);
+                    setTimeout(sendNext, 0); // Yield to event loop to prevent blocking
                 } catch (e) {
                     console.error('Error sending chunk:', e);
                     conn.send({ type: 'track-error', trackId, message: 'Chunk read error' });
@@ -1967,13 +2101,20 @@
 
         async function completeTrackReceive(trackId) {
             const rt = receivingTracks[trackId];
-            if (!rt) return;
+            if (!rt) {
+                console.warn('No receiving track state for', trackId);
+                return;
+            }
             
             try {
                 const sortedKeys = Object.keys(rt.chunks).map(Number).sort((a, b) => a - b);
                 const buffers = sortedKeys.map(key => rt.chunks[key]);
                 const blob = new Blob(buffers, { type: rt.meta?.type || 'audio/mpeg' });
                 
+                if (blob.size !== rt.totalSize) {
+                    console.warn(`Size mismatch for ${trackId}: expected ${rt.totalSize}, got ${blob.size}. Attempting to save anyway.`);
+                }
+
                 await saveBlob(trackId, blob);
                 if (rt.meta) {
                     await saveMetadata(rt.meta);
@@ -1982,10 +2123,8 @@
                 showToast(`✅ Downloaded: ${rt.meta?.name || trackId}`, 'success');
                 renderLibrary();
                 
-                // Auto play after downloading completes
                 if (window.pendingPlayTrackId === trackId) {
                     window.pendingPlayTrackId = null;
-                    showToast('✅ Download complete! Auto-playing...', 'success');
                     const playerId = Object.keys(players)[0] || 1;
                     if (players[playerId] && rt.meta) {
                         const alreadyInPlaylist = players[playerId].playlist.some(t => t.id === trackId);
@@ -1996,6 +2135,7 @@
                         const loaded = await players[playerId].loadTrack(rt.meta);
                         if (loaded) {
                             await players[playerId].play();
+                            showToast('🎵 Download complete! Auto-playing now...', 'success');
                         }
                     }
                 }
@@ -2009,51 +2149,49 @@
         }
 
         async function downloadAllTracksFromHost() {
-            if (isHost) return;
+            if (isHost || isOfflineMode) return;
             const hostConn = Object.values(connections)[0];
             if (!hostConn) {
                 showToast('⚠️ Not connected to laptop', 'error');
                 return;
             }
+            
             showToast('📥 Requesting full library download from laptop...', 'success');
             hostConn.send({ type: 'request-full-download' });
         }
 
         // ==================== UI HELPERS ====================
-        function showConnectionTab(tab) {
-            document.querySelectorAll('.conn-tab').forEach(el => el.style.display = 'none');
-            document.getElementById(`conn-${tab}`).style.display = 'block';
-            ['direct', 'public', 'link'].forEach(t => {
-                const btn = document.getElementById(`tab-${t}`);
-                if (t === tab) {
-                    btn.className = 'btn btn-sm btn-primary';
-                } else {
-                    btn.className = 'btn btn-sm btn-outline';
-                }
+        function setConnectionMode(mode) {
+            const details = document.getElementById('connectionModeDetails');
+            if (mode === 'direct') {
+                details.textContent = 'Direct: Use Room ID to connect securely peer-to-peer.';
+            } else if (mode === 'public') {
+                details.textContent = 'Public Explore: Join a random public room or browse active public sessions.';
+                showToast('🌐 Searching for public rooms...', 'success');
+                setTimeout(() => {
+                    const publicRoom = 'public-' + generateId(4);
+                    document.getElementById('joinIdentifier').value = publicRoom;
+                    showToast(`🌐 Joined Public Explore Room: ${publicRoom}`, 'success');
+                }, 1000);
+            } else if (mode === 'linein') {
+                details.textContent = 'Line-In / Aux: Routes audio to system default or captured line-in. Ensure your OS audio settings are configured.';
+                showToast('🔌 Line-In mode activated. Check OS audio routing.', 'success');
+            }
+        }
+
+        function enableOfflineMode() {
+            isOfflineMode = true;
+            document.getElementById('offlineBanner').style.display = 'none';
+            showToast('📴 Offline Mode Enabled. You can play downloaded tracks.', 'success');
+            
+            const p2pElements = document.querySelectorAll('.p2p-only');
+            p2pElements.forEach(el => el.style.display = 'none');
+            
+            Object.values(players).forEach(p => {
+                p.playlist = p.playlist.filter(t => !t.isStream); 
+                p.renderPlaylist();
             });
-        }
-
-        function createPublicRoom() {
-            const pubId = 'public-' + generateId(4);
-            document.getElementById('myIdentifier').value = pubId;
-            showConnectionTab('direct');
-            createRoom();
-        }
-
-        function generateJoinLink() {
-            const id = document.getElementById('myIdentifier').value.trim() || 'host-' + generateId();
-            document.getElementById('myIdentifier').value = id;
-            const baseUrl = window.location.href.split('#')[0].split('?')[0];
-            const url = `${baseUrl}#join=${encodeURIComponent(id)}`;
-            document.getElementById('generatedLink').value = url;
-            document.getElementById('linkResult').style.display = 'block';
-        }
-
-        function copyGeneratedLink() {
-            const link = document.getElementById('generatedLink');
-            link.select();
-            document.execCommand('copy');
-            showToast('📋 Link copied!', 'success');
+            updateUIMode();
         }
 
         function copyRoomCode() {
@@ -2075,29 +2213,6 @@
             document.getElementById('qrModal').classList.remove('show');
         }
 
-        function showOfflineModePrompt() {
-            const modal = document.getElementById('offlineModal');
-            if (modal) modal.classList.add('show');
-        }
-
-        function attemptReconnect() {
-            document.getElementById('offlineModal').classList.remove('show');
-            if (window.lastJoinedRoom) {
-                showToast('🔄 Attempting to reconnect...', 'success');
-                joinRoom(window.lastJoinedRoom);
-            } else {
-                showToast('⚠️ No previous room to reconnect to', 'warning');
-            }
-        }
-
-        function enableOfflineMode() {
-            document.getElementById('offlineModal').classList.remove('show');
-            setStatus('offline', 'Offline Mode Active');
-            showToast('✅ Offline Mode Enabled. You can play downloaded tracks.', 'success');
-            const p2pElements = document.querySelectorAll('.p2p-only');
-            p2pElements.forEach(el => el.style.display = 'none');
-        }
-
         function leaveRoom() {
             Object.values(connections).forEach(conn => conn.close());
             connections = {};
@@ -2109,6 +2224,8 @@
             if (wakeLock) { wakeLock.release(); wakeLock = null; }
             if (playbackRetryInterval) { clearInterval(playbackRetryInterval); playbackRetryInterval = null; }
             if (window.reconnectInterval) { clearInterval(window.reconnectInterval); window.reconnectInterval = null; }
+            isOfflineMode = false;
+            updateUIMode();
         }
 
         document.addEventListener('visibilitychange', () => {
@@ -2121,25 +2238,33 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const hash = window.location.hash;
+            
             if (hash.startsWith('#join=')) {
                 const roomId = decodeURIComponent(hash.substring(6));
                 document.getElementById('joinIdentifier').value = roomId;
                 history.replaceState(null, null, window.location.pathname);
+                
                 localStorage.setItem('md_user', JSON.stringify({ username: 'QR Guest', mode: 'preview' }));
                 document.getElementById('authScreen').classList.add('hidden');
                 updateAuthUI();
+                
                 document.getElementById('setupScreen').classList.remove('active');
+                
                 showToast('🎯 Auto-joining room from QR scan...', 'success');
+                
                 appInitialized = true;
                 document.getElementById('permissionWizard').classList.add('hidden');
                 if (Object.keys(players).length === 0) addPlayer();
                 requestWakeLock();
+                
                 setTimeout(() => joinRoom(roomId), 100);
                 return;
             }
 
             const savedUser = localStorage.getItem('md_user');
-            if (savedUser) enterApp();
+            if (savedUser) {
+                enterApp();
+            }
         });
 
         window.addEventListener('beforeunload', () => {
