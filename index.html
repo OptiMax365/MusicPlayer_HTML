@@ -152,7 +152,7 @@
             transition: all 0.2s; display: flex; align-items: center; justify-content: center;
         }
         .player-controls button:hover { background: var(--highlight); color: #000; border-color: var(--highlight); }
-        .player-controls button.play-btn { width: 56px; height: 56px; font-size: 24px; background: var(--highlight); color: #000; border: none; box-shadow: 0 4px 15px var(--glow); }
+        .player-controls button.play-btn { width: 56px; height: 56px; font-size: 24px; background: var(--highlight); color: #00ff88; border: none; box-shadow: 0 4px 15px var(--glow); }
         .player-controls button.play-btn:hover { transform: scale(1.1); box-shadow: 0 6px 20px var(--glow); }
         .player-controls button.repeat-btn { width: 36px; height: 36px; font-size: 16px; color: var(--text-secondary); }
         .player-controls button.repeat-btn.active { color: var(--highlight); border-color: var(--highlight); background: rgba(0, 230, 118, 0.1); }
@@ -1228,7 +1228,7 @@
                         <div class="d-pad" id="dpad-${this.id}">
                             <button class="d-btn up" onclick="players[${this.id}].setPan2D(0, 1)">▲</button>
                             <button class="d-btn left" onclick="players[${this.id}].setPan2D(-1, 0)">◀</button>
-                            <button class="d-btn center" onclick="players[${this.id}].setPan2D(0, 0)">●</button>
+                            <button class="d-btn center" onclick="players[${this.id}].setPan2D(0, 0)"></button>
                             <button class="d-btn right" onclick="players[${this.id}].setPan2D(1, 0)">▶</button>
                             <button class="d-btn down" onclick="players[${this.id}].setPan2D(0, -1)">▼</button>
                         </div>
