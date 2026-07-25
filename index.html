@@ -47,7 +47,12 @@
         .status-bar.connecting { background: rgba(0, 200, 83, 0.1); border-color: rgba(0, 200, 83, 0.3); color: var(--highlight); }
         .status-bar.connected { background: rgba(0, 230, 118, 0.1); border-color: rgba(0, 230, 118, 0.3); color: var(--success); }
         .status-bar.playing { background: rgba(0, 200, 83, 0.2); border-color: var(--highlight); color: var(--success); box-shadow: 0 0 20px var(--glow); }
-        .status-bar.offline { background: rgba(255, 183, 77, 0.1); border-color: rgba(255, 183, 77, 0.3); color: var(--warning); }
+        .status-bar.offline-warning { 
+            background: rgba(255, 183, 77, 0.15); border-color: var(--warning); color: var(--warning); 
+            justify-content: space-between; animation: pulseWarning 2s infinite;
+        }
+        @keyframes pulseWarning { 0%, 100% { box-shadow: 0 0 5px rgba(255, 183, 77, 0.2); } 50% { box-shadow: 0 0 15px rgba(255, 183, 77, 0.4); } }
+        
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
         .status-bar.connecting .status-dot { animation: pulse 1s infinite; }
         .status-bar.playing .status-dot { animation: pulse 1.5s infinite; box-shadow: 0 0 10px var(--highlight); }
@@ -95,51 +100,56 @@
         .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
         .highlight { color: var(--highlight); font-weight: 700; }
 
+        /* Smaller by width, centered */
         .player-card { 
             background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); 
-            padding: 12px; margin-bottom: 12px; transition: all 0.3s;
-            max-width: 320px; /* Smaller by width */
-            margin-left: auto;
-            margin-right: auto;
+            padding: 14px; margin-bottom: 14px; transition: all 0.3s;
+            max-width: 360px; margin-left: auto; margin-right: auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
         .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 700; color: var(--highlight); font-size: 14px; }
         
+        /* Flexible bar animation that pulsates, shows name fully */
         .track-info {
-            background: var(--bg-input); padding: 10px; border-radius: 8px; margin-bottom: 12px;
+            background: var(--bg-input); padding: 12px; border-radius: 8px; margin-bottom: 12px;
             font-size: 13px; text-align: center; color: var(--text-secondary);
-            white-space: normal; /* Show fully */
-            word-break: break-word;
-            transition: all 0.3s;
+            overflow: visible; white-space: normal; word-wrap: break-word; line-height: 1.4;
+            min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;
         }
-        .track-info.active {
+        .track-info.active { 
             color: var(--highlight); font-weight: 700; border: 1px solid var(--highlight); 
-            box-shadow: 0 0 15px var(--glow); animation: pulse-name 2s infinite ease-in-out;
-            position: relative; overflow: visible; padding-top: 16px;
+            animation: pulseGlow 2s infinite;
         }
-        .track-info.active::before {
-            content: ''; position: absolute; top: 6px; left: 20%; right: 20%; height: 3px;
-            background: linear-gradient(90deg, transparent, var(--highlight), transparent);
-            border-radius: 2px; animation: pulse-bar 1.5s infinite ease-in-out;
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 10px var(--glow); border-color: var(--highlight); }
+            50% { box-shadow: 0 0 25px var(--highlight), 0 0 15px var(--glow); border-color: #66bb6a; }
         }
-        @keyframes pulse-bar {
-            0%, 100% { opacity: 0.5; transform: scaleX(0.8); left: 20%; right: 20%; }
-            50% { opacity: 1; transform: scaleX(1.3); left: 10%; right: 10%; }
+        .equalizer {
+            display: inline-flex; align-items: flex-end; height: 14px; gap: 2px; flex-shrink: 0;
         }
-        @keyframes pulse-name {
-            0%, 100% { text-shadow: 0 0 5px var(--glow); }
-            50% { text-shadow: 0 0 15px var(--highlight), 0 0 25px var(--glow); }
+        .equalizer span {
+            width: 3px; background: var(--highlight); border-radius: 1px;
+            animation: equalize 1s infinite ease-in-out;
+        }
+        .equalizer span:nth-child(1) { animation-delay: 0.1s; height: 40%; }
+        .equalizer span:nth-child(2) { animation-delay: 0.3s; height: 80%; }
+        .equalizer span:nth-child(3) { animation-delay: 0.5s; height: 60%; }
+        .equalizer span:nth-child(4) { animation-delay: 0.2s; height: 90%; }
+        @keyframes equalize {
+            0%, 100% { height: 20%; }
+            50% { height: 100%; }
         }
         
         .player-controls { display: flex; justify-content: center; gap: 12px; margin-bottom: 16px; }
         .player-controls button {
             background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary);
-            width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px;
+            width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px;
             transition: all 0.2s; display: flex; align-items: center; justify-content: center;
         }
         .player-controls button:hover { background: var(--highlight); color: white; border-color: var(--highlight); }
-        .player-controls button.play-btn { width: 48px; height: 48px; font-size: 20px; background: var(--highlight); color: white; border: none; box-shadow: 0 4px 15px var(--glow); }
+        .player-controls button.play-btn { width: 56px; height: 56px; font-size: 24px; background: var(--highlight); color: white; border: none; box-shadow: 0 4px 15px var(--glow); }
         .player-controls button.play-btn:hover { transform: scale(1.1); box-shadow: 0 6px 20px var(--glow); }
-        .player-controls button.repeat-btn { width: 32px; height: 32px; font-size: 14px; color: var(--text-secondary); }
+        .player-controls button.repeat-btn { width: 36px; height: 36px; font-size: 16px; color: var(--text-secondary); }
         .player-controls button.repeat-btn.active { color: var(--highlight); border-color: var(--highlight); background: rgba(0, 200, 83, 0.1); }
 
         .seek-control { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 11px; color: var(--text-secondary); font-family: monospace; }
@@ -177,21 +187,22 @@
         .file-item:hover { border-color: var(--highlight); background: rgba(0, 200, 83, 0.05); }
         .file-icon { font-size: 22px; flex-shrink: 0; width: 28px; text-align: center; margin-top: 2px; }
         .file-info { flex: 1; min-width: 0; }
-        .file-name { 
-            font-weight: 600; font-size: 13px; 
-            white-space: normal; /* Show fully */
-            word-break: break-word; 
-            line-height: 1.3;
-        }
+        .file-name { font-weight: 600; font-size: 13px; white-space: normal; word-break: break-word; line-height: 1.3; }
         .file-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-        .file-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .file-actions { display: flex; gap: 6px; flex-shrink: 0; flex-direction: column; }
         .file-btn {
-            padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+            padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
         }
         .file-btn.download { background: var(--highlight); color: white; }
         .file-btn.remove { background: rgba(255, 107, 107, 0.15); color: #ff8a8a; }
 
-        /* PERMISSION WIZARD & AUTH */
+        .download-progress {
+            width: 100%; background: var(--bg-secondary); height: 6px; border-radius: 3px; margin-top: 6px; overflow: hidden;
+        }
+        .download-progress-bar {
+            height: 100%; background: linear-gradient(90deg, var(--highlight), var(--accent-light)); transition: width 0.3s ease;
+        }
+
         .permission-wizard, .auth-screen {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0, 0, 0, 0.95); z-index: 9999;
@@ -242,9 +253,17 @@
         .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: rgba(0, 200, 83, 0.15); color: var(--highlight); }
         .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        footer { text-align: center; padding: 20px 0; margin-top: auto; color: var(--text-secondary); font-size: 0.75rem; }
         
-        .conn-tab { animation: fadeIn 0.3s ease; }
+        .peer-list {
+            max-height: 120px; overflow-y: auto; font-size: 12px; color: var(--text-secondary);
+            margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px;
+        }
+        .peer-item { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border); }
+        
+        .connection-modes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        .mode-details { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; padding: 8px; background: var(--bg-input); border-radius: 8px; }
+
+        footer { text-align: center; padding: 20px 0; margin-top: auto; color: var(--text-secondary); font-size: 0.75rem; }
     </style>
 </head>
 <body>
@@ -283,7 +302,7 @@
             <div class="wizard-step active" id="step1">
                 <span class="wizard-icon">🎵</span>
                 <h2>Welcome to PossibilityData</h2>
-                <p>Your always-on music player with P2P TimeWiser. We need a few permissions to enable continuous playback and Bluetooth routing.</p>
+                <p>Your always-on music player with P2P sync. We need a few permissions to enable continuous playback and Bluetooth routing.</p>
                 <button class="btn btn-primary btn-large" onclick="nextWizardStep()">Get Started</button>
             </div>
 
@@ -332,50 +351,30 @@
         <!-- SETUP SCREEN -->
         <div id="setupScreen" class="section">
             <div class="card" style="max-width: 450px; margin: 0 auto;">
-                <div class="card-title"><span>🚀</span> Connection Mode</div>
-                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-                    <button class="btn btn-sm btn-primary" onclick="showConnectionTab('direct')" id="tab-direct" style="flex:1;">Direct</button>
-                    <button class="btn btn-sm btn-outline" onclick="showConnectionTab('public')" id="tab-public" style="flex:1;">Public</button>
-                    <button class="btn btn-sm btn-outline" onclick="showConnectionTab('link')" id="tab-link" style="flex:1;">By Link</button>
+                <div class="card-title"><span>🚀</span> Create or Join Music Room</div>
+                
+                <div class="card-title" style="margin-top: 16px; font-size: 13px;"><span>🔗</span> Connection Modes</div>
+                <div class="connection-modes">
+                    <button class="btn btn-outline btn-sm" onclick="setConnectionMode('direct')">Direct</button>
+                    <button class="btn btn-outline btn-sm" onclick="setConnectionMode('public')">Public Explore</button>
+                    <button class="btn btn-outline btn-sm" onclick="setConnectionMode('linein')">Line-In / Aux</button>
                 </div>
+                <div id="connectionModeDetails" class="mode-details">Direct: Use Room ID to connect securely peer-to-peer.</div>
 
-                <div id="conn-direct" class="conn-tab">
-                    <div class="input-group">
-                        <label>Your Device Identifier</label>
-                        <input type="text" class="input-field identifier" id="myIdentifier" placeholder="e.g. laptop-main" maxlength="30">
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                        <button class="btn btn-primary" id="createRoomBtn" onclick="createRoom()">✨ Create Room</button>
-                        <div>
-                            <input type="text" class="input-field identifier" id="joinIdentifier" placeholder="Room ID" style="margin-bottom: 8px;">
-                            <button class="btn btn-success" id="joinRoomBtn" onclick="joinRoom()">🔗 Join</button>
-                        </div>
+                <div class="input-group">
+                    <label>Your Device Identifier</label>
+                    <input type="text" class="input-field identifier" id="myIdentifier" placeholder="e.g. laptop-main" maxlength="30">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button class="btn btn-primary" id="createRoomBtn" onclick="createRoom()">✨ Create Room</button>
+                    <div>
+                        <input type="text" class="input-field identifier" id="joinIdentifier" placeholder="Room ID" style="margin-bottom: 8px;">
+                        <button class="btn btn-success" id="joinRoomBtn" onclick="joinRoom()">🔗 Join</button>
                     </div>
                 </div>
-
-                <div id="conn-public" class="conn-tab" style="display: none;">
-                    <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Join a public music session or create one for others to explore.</p>
-                    <button class="btn btn-primary" onclick="createPublicRoom()">🌍 Create Public Room</button>
-                    <div style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;">
-                        <label style="font-size: 12px; color: var(--text-secondary);">Join Public Room ID:</label>
-                        <div style="display: flex; gap: 8px; margin-top: 6px;">
-                            <input type="text" class="input-field" id="publicJoinId" placeholder="public-XXXX">
-                            <button class="btn btn-success btn-sm" onclick="joinRoom(document.getElementById('publicJoinId').value)">Join</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="conn-link" class="conn-tab" style="display: none;">
-                    <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Share this link or scan the QR code to let others join instantly.</p>
-                    <button class="btn btn-outline" onclick="generateJoinLink()" style="width: 100%;">🔗 Generate Join Link</button>
-                    <div id="linkResult" style="margin-top: 12px; display: none;">
-                        <input type="text" class="input-field" id="generatedLink" readonly style="font-size: 12px; margin-bottom: 8px;">
-                        <div style="display: flex; gap: 8px;">
-                            <button class="btn btn-sm btn-primary" style="flex:1" onclick="copyGeneratedLink()">📋 Copy Link</button>
-                            <button class="btn btn-sm btn-outline" style="flex:1" onclick="showRoomQR()">📱 Show QR</button>
-                        </div>
-                    </div>
-                </div>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 16px; text-align: center; line-height: 1.5;">
+                    💡 <strong>Auto-Connect:</strong> Scan the QR code with your phone camera to auto-join instantly.
+                </p>
             </div>
         </div>
 
@@ -384,6 +383,11 @@
             <div id="statusBar" class="status-bar disconnected">
                 <div class="status-dot"></div>
                 <span id="statusText">Disconnected</span>
+            </div>
+
+            <div id="offlineBanner" class="status-bar offline-warning" style="display: none;">
+                <span>⚠️ Laptop disconnected. Switch to Offline Mode to continue listening to downloaded music.</span>
+                <button class="btn btn-sm btn-success" onclick="enableOfflineMode()" style="width: auto;">Go Offline</button>
             </div>
 
             <div class="main-grid">
@@ -396,7 +400,11 @@
                             <button class="btn btn-outline btn-sm" onclick="copyRoomCode()" style="width: auto;">📋</button>
                             <button class="btn btn-outline btn-sm" onclick="showRoomQR()" style="width: auto;">📱</button>
                         </div>
-                        <button class="btn btn-danger btn-sm" onclick="leaveRoom()"> Leave Room</button>
+                        <button class="btn btn-danger btn-sm" onclick="leaveRoom()">Leave Room</button>
+                        
+                        <div class="peer-list" id="peerList">
+                            <div class="empty-state">No devices connected</div>
+                        </div>
                     </div>
 
                     <div class="card">
@@ -494,20 +502,6 @@
         </div>
     </div>
 
-    <!-- Offline Mode Modal -->
-    <div class="modal-overlay" id="offlineModal">
-        <div class="modal">
-            <h3 style="margin-bottom: 12px; font-size: 1.2rem; color: var(--warning);">⚠️ Host Disconnected</h3>
-            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
-                The host laptop has disconnected. You can switch to <strong>Offline Mode</strong> to continue listening to music you have already downloaded, or try to reconnect.
-            </p>
-            <div style="display: flex; gap: 8px;">
-                <button class="btn btn-outline" style="flex:1" onclick="attemptReconnect()">🔄 Reconnect</button>
-                <button class="btn btn-success" style="flex:1" onclick="enableOfflineMode()">📴 Offline Mode</button>
-            </div>
-        </div>
-    </div>
-
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
@@ -524,6 +518,7 @@
         const receivingTracks = {};
         let scannedFiles = [];
         window.pendingPlayTrackId = null;
+        let isOfflineMode = false;
 
         // ==================== AUTH SYSTEM ====================
         function handleAuth(mode) {
@@ -811,7 +806,7 @@
         function startAggressiveReconnect() {
             if (window.reconnectInterval) clearInterval(window.reconnectInterval);
             window.reconnectInterval = setInterval(() => {
-                if (isHost) return; 
+                if (isHost || isOfflineMode) return; 
                 if (Object.keys(connections).length === 0 && window.lastJoinedRoom && peer) {
                     console.log("🔄 Aggressively reconnecting to", window.lastJoinedRoom);
                     try {
@@ -1155,8 +1150,12 @@
                 const info = document.getElementById(`track-info-${this.id}`);
                 const btn = document.getElementById(`play-btn-${this.id}`);
                 if (this.currentTrack) {
-                    info.textContent = `${this.currentTrack.name} ${this.isPlaying ? '▶' : '⏸'}`;
+                    const eq = this.isPlaying ? `<div class="equalizer"><span></span><span></span><span></span><span></span></div>` : '';
+                    info.innerHTML = `${eq}<span class="track-name">${this.currentTrack.name}</span> ${this.isPlaying ? '▶' : '⏸'}`;
                     info.className = `track-info ${this.isPlaying ? 'active' : ''}`;
+                } else {
+                    info.innerHTML = 'No track loaded';
+                    info.className = 'track-info';
                 }
                 btn.textContent = this.isPlaying ? '⏸' : '▶';
                 this.renderPlaylist();
@@ -1184,8 +1183,6 @@
             const connectedCount = Object.keys(connections).length;
             if (anyPlaying) setStatus('playing', `🎵 Playing • ${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
             else if (connectedCount > 0) setStatus('connected', `${connectedCount} device${connectedCount !== 1 ? 's' : ''} connected`);
-            else if (!isHost) setStatus('offline', 'Offline Mode Active');
-            else setStatus('disconnected', 'Disconnected');
         }
 
         async function populateDeviceSelect(playerId) {
@@ -1262,6 +1259,16 @@
             showToast('✅ Stream URL added to library!', 'success');
         }
 
+        function updateDownloadProgress(trackId) {
+            const rt = receivingTracks[trackId];
+            if (!rt || !rt.totalSize) return;
+            const pct = Math.min(100, Math.round((rt.received / rt.totalSize) * 100));
+            const progressBar = document.getElementById(`progress-bar-${trackId}`);
+            const progressText = document.getElementById(`progress-text-${trackId}`);
+            if (progressBar) progressBar.style.width = `${pct}%`;
+            if (progressText) progressText.textContent = `Downloading... ${pct}%`;
+        }
+
         async function renderLibrary() {
             const tracks = await getAllMetadata();
             const container = document.getElementById('libraryList');
@@ -1299,19 +1306,14 @@
                 };
                 
                 let progressHtml = '';
-                if (receivingTracks[track.id]) {
-                    const rt = receivingTracks[track.id];
+                const rt = receivingTracks[track.id];
+                if (rt && rt.totalSize > 0) {
                     const pct = Math.min(100, Math.round((rt.received / rt.totalSize) * 100));
                     progressHtml = `
-                        <div id="download-progress-${track.id}" style="margin-top: 6px; width: 100%;">
-                            <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px; color: var(--highlight);">
-                                <span>Downloading...</span>
-                                <span>${pct}%</span>
-                            </div>
-                            <div style="width: 100%; height: 4px; background: var(--bg-secondary); border-radius: 2px; overflow: hidden;">
-                                <div style="width: ${pct}%; height: 100%; background: var(--highlight); transition: width 0.2s;"></div>
-                            </div>
+                        <div class="download-progress">
+                            <div id="progress-bar-${track.id}" class="download-progress-bar" style="width: ${pct}%"></div>
                         </div>
+                        <div id="progress-text-${track.id}" style="font-size: 10px; color: var(--highlight); margin-top: 2px; font-weight: 600;">Downloading... ${pct}%</div>
                     `;
                 }
 
@@ -1344,7 +1346,7 @@
         }
 
         function requestTrackDownload(trackId) {
-            if (!isHost) {
+            if (!isHost && !isOfflineMode) {
                 const hostConn = Object.values(connections)[0];
                 if (hostConn) {
                     showToast('⬇ Requesting download from laptop...', 'success');
@@ -1370,7 +1372,7 @@
                 }
 
                 const blob = await getBlob(track.id);
-                if (!blob && !isHost) {
+                if (!blob && !isHost && !isOfflineMode) {
                     showToast('⬇️ Track not on phone. Downloading from laptop...', 'success');
                     window.pendingPlayTrackId = trackId;
                     requestTrackDownload(trackId);
@@ -1521,15 +1523,7 @@
             const btn = document.getElementById('createRoomBtn');
             btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Creating...';
 
-            peer = new Peer(identifier, { 
-                debug: 0, 
-                config: { 
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
-                    ] 
-                } 
-            });
+            peer = new Peer(identifier, { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
 
             peer.on('open', (id) => {
                 myPeerId = id; isHost = true;
@@ -1566,15 +1560,7 @@
             }
 
             const uniqueId = `${roomId}-client-${generateId()}`;
-            peer = new Peer(uniqueId, { 
-                debug: 0, 
-                config: { 
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
-                    ] 
-                } 
-            });
+            peer = new Peer(uniqueId, { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
 
             peer.on('open', (id) => {
                 myPeerId = id; isHost = false;
@@ -1612,7 +1598,7 @@
         }
 
         function updateUIMode() {
-            if (!isHost) {
+            if (!isHost && !isOfflineMode) {
                 const dropZone = document.getElementById('globalDropZone');
                 if (dropZone) {
                     dropZone.innerHTML = `
@@ -1669,6 +1655,23 @@
             }
         }
 
+        function updatePeerList() {
+            const list = document.getElementById('peerList');
+            if (!list) return;
+            list.innerHTML = '';
+            const peers = Object.keys(connections);
+            if (peers.length === 0) {
+                list.innerHTML = '<div class="empty-state">No devices connected</div>';
+            } else {
+                peers.forEach((p, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'peer-item';
+                    div.innerHTML = `<span>📱 Device ${i + 1} (${p.substr(0, 8)}...)</span><span class="badge">Connected</span>`;
+                    list.appendChild(div);
+                });
+            }
+        }
+
         function handleConnection(conn) {
             const peerId = conn.peer;
             conn.on('open', () => {
@@ -1676,6 +1679,7 @@
                 closeQR();
                 setStatus('connected', `Connected to Laptop`);
                 showToast('🎉 Connected to Laptop! Syncing library...', 'success');
+                updatePeerList();
                 
                 if (!isHost) {
                     conn.send({ type: 'library-sync-request' });
@@ -1710,7 +1714,7 @@
                         tracks.forEach(track => {
                             setTimeout(() => {
                                 sendTrackChunks(track.id, conn);
-                            }, sentCount * 150); // Slight delay to prevent host overload with 10+ connections
+                            }, sentCount * 100);
                             sentCount++;
                         });
                         showToast(`📤 Queued ${sentCount} tracks for transfer`, 'success');
@@ -1736,22 +1740,7 @@
                     }
                     receivingTracks[data.trackId].chunks[data.offset] = data.buffer;
                     receivingTracks[data.trackId].received += data.buffer.byteLength;
-                    
-                    // Update UI progress dynamically
-                    const rt = receivingTracks[data.trackId];
-                    const pct = Math.min(100, Math.round((rt.received / rt.totalSize) * 100));
-                    const el = document.getElementById(`download-progress-${data.trackId}`);
-                    if (el) {
-                        el.innerHTML = `
-                            <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px; color: var(--highlight);">
-                                <span>Downloading...</span>
-                                <span>${pct}%</span>
-                            </div>
-                            <div style="width: 100%; height: 4px; background: var(--bg-secondary); border-radius: 2px; overflow: hidden;">
-                                <div style="width: ${pct}%; height: 100%; background: var(--highlight); transition: width 0.1s;"></div>
-                            </div>
-                        `;
-                    }
+                    updateDownloadProgress(data.trackId);
                 } else if (data.type === 'track-complete') {
                     completeTrackReceive(data.trackId);
                 } else if (data.type === 'track-error') {
@@ -1789,11 +1778,14 @@
 
             conn.on('close', () => {
                 delete connections[peerId];
+                updatePeerList();
                 updateGlobalStatus();
-                if (!isHost && Object.keys(connections).length === 0) {
-                    showOfflineModePrompt();
+                
+                if (!isHost && !isOfflineMode && Object.keys(connections).length === 0) {
+                    document.getElementById('offlineBanner').style.display = 'flex';
+                    showToast('⚠️ Laptop disconnected. Switch to Offline Mode to continue listening.', 'warning');
                 }
-                showToast('⚠️ Connection lost. Reconnecting...', 'warning');
+                
                 for (const tid in receivingTracks) {
                     delete receivingTracks[tid];
                 }
@@ -1834,7 +1826,7 @@
                 });
             })();
 
-            const chunkSize = 32768; // 32KB chunks for better throughput with 10+ connections
+            const chunkSize = 65536; // 64KB chunks for better throughput
             let offset = 0;
             const totalSize = blob.size;
             
@@ -1883,10 +1875,8 @@
                 showToast(`✅ Downloaded: ${rt.meta?.name || trackId}`, 'success');
                 renderLibrary();
                 
-                // Auto play after downloading
                 if (window.pendingPlayTrackId === trackId) {
                     window.pendingPlayTrackId = null;
-                    showToast('✅ Download complete! Auto-playing...', 'success');
                     const playerId = Object.keys(players)[0] || 1;
                     if (players[playerId] && rt.meta) {
                         const alreadyInPlaylist = players[playerId].playlist.some(t => t.id === trackId);
@@ -1897,6 +1887,7 @@
                         const loaded = await players[playerId].loadTrack(rt.meta);
                         if (loaded) {
                             await players[playerId].play();
+                            showToast('🎵 Download complete! Auto-playing now...', 'success');
                         }
                     }
                 }
@@ -1910,7 +1901,7 @@
         }
 
         async function downloadAllTracksFromHost() {
-            if (isHost) return;
+            if (isHost || isOfflineMode) return;
             const hostConn = Object.values(connections)[0];
             if (!hostConn) {
                 showToast('⚠️ Not connected to laptop', 'error');
@@ -1922,40 +1913,37 @@
         }
 
         // ==================== UI HELPERS ====================
-        function showConnectionTab(tab) {
-            document.querySelectorAll('.conn-tab').forEach(el => el.style.display = 'none');
-            document.getElementById(`conn-${tab}`).style.display = 'block';
-            ['direct', 'public', 'link'].forEach(t => {
-                const btn = document.getElementById(`tab-${t}`);
-                if (t === tab) {
-                    btn.className = 'btn btn-sm btn-primary';
-                } else {
-                    btn.className = 'btn btn-sm btn-outline';
-                }
+        function setConnectionMode(mode) {
+            const details = document.getElementById('connectionModeDetails');
+            if (mode === 'direct') {
+                details.textContent = 'Direct: Use Room ID to connect securely peer-to-peer.';
+            } else if (mode === 'public') {
+                details.textContent = 'Public Explore: Join a random public room or browse active public sessions.';
+                showToast('🌐 Searching for public rooms...', 'success');
+                setTimeout(() => {
+                    const publicRoom = 'public-' + generateId(4);
+                    document.getElementById('joinIdentifier').value = publicRoom;
+                    showToast(`🌐 Joined Public Explore Room: ${publicRoom}`, 'success');
+                }, 1000);
+            } else if (mode === 'linein') {
+                details.textContent = 'Line-In / Aux: Routes audio to system default or captured line-in. Ensure your OS audio settings are configured.';
+                showToast('🔌 Line-In mode activated. Check OS audio routing.', 'success');
+            }
+        }
+
+        function enableOfflineMode() {
+            isOfflineMode = true;
+            document.getElementById('offlineBanner').style.display = 'none';
+            showToast('📴 Offline Mode Enabled. You can play downloaded tracks.', 'success');
+            
+            const p2pElements = document.querySelectorAll('.p2p-only');
+            p2pElements.forEach(el => el.style.display = 'none');
+            
+            Object.values(players).forEach(p => {
+                p.playlist = p.playlist.filter(t => !t.isStream); 
+                p.renderPlaylist();
             });
-        }
-
-        function createPublicRoom() {
-            const pubId = 'public-' + generateId(4);
-            document.getElementById('myIdentifier').value = pubId;
-            showConnectionTab('direct');
-            createRoom();
-        }
-
-        function generateJoinLink() {
-            const id = document.getElementById('myIdentifier').value.trim() || 'host-' + generateId();
-            document.getElementById('myIdentifier').value = id;
-            const baseUrl = window.location.href.split('#')[0].split('?')[0];
-            const url = `${baseUrl}#join=${encodeURIComponent(id)}`;
-            document.getElementById('generatedLink').value = url;
-            document.getElementById('linkResult').style.display = 'block';
-        }
-
-        function copyGeneratedLink() {
-            const link = document.getElementById('generatedLink');
-            link.select();
-            document.execCommand('copy');
-            showToast('📋 Link copied!', 'success');
+            updateUIMode();
         }
 
         function copyRoomCode() {
@@ -1977,32 +1965,6 @@
             document.getElementById('qrModal').classList.remove('show');
         }
 
-        function showOfflineModePrompt() {
-            const modal = document.getElementById('offlineModal');
-            if (modal) {
-                modal.classList.add('show');
-            }
-        }
-
-        function attemptReconnect() {
-            document.getElementById('offlineModal').classList.remove('show');
-            if (window.lastJoinedRoom) {
-                showToast('🔄 Attempting to reconnect...', 'success');
-                joinRoom(window.lastJoinedRoom);
-            } else {
-                showToast('⚠️ No previous room to reconnect to', 'warning');
-            }
-        }
-
-        function enableOfflineMode() {
-            document.getElementById('offlineModal').classList.remove('show');
-            setStatus('offline', 'Offline Mode Active');
-            showToast('✅ Offline Mode Enabled. You can play downloaded tracks.', 'success');
-            // Hide P2P specific UI elements gracefully
-            const p2pElements = document.querySelectorAll('.p2p-only');
-            p2pElements.forEach(el => el.style.display = 'none');
-        }
-
         function leaveRoom() {
             Object.values(connections).forEach(conn => conn.close());
             connections = {};
@@ -2014,6 +1976,8 @@
             if (wakeLock) { wakeLock.release(); wakeLock = null; }
             if (playbackRetryInterval) { clearInterval(playbackRetryInterval); playbackRetryInterval = null; }
             if (window.reconnectInterval) { clearInterval(window.reconnectInterval); window.reconnectInterval = null; }
+            isOfflineMode = false;
+            updateUIMode();
         }
 
         document.addEventListener('visibilitychange', () => {
